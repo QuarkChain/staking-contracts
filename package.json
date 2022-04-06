@@ -1,0 +1,32 @@
+{
+  "name": "xchain-dao",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.2",
+    "@nomiclabs/hardhat-etherscan": "^2.1.6",
+    "@nomiclabs/hardhat-waffle": "^2.0.1",
+    "@openzeppelin/contracts": "^4.5.0",
+    "chai": "^4.3.4",
+    "dotenv": "^10.0.0",
+    "ethereum-waffle": "^3.4.0",
+    "ethers": "^5.4.7",
+    "hardhat": "^2.6.4",
+    "hardhat-gas-reporter": "^1.0.4",
+    "openzeppelin-solidity": "2.2.0",
+    "prettier": "2.6.1",
+    "prettier-check": "^2.0.0",
+    "prettier-plugin-solidity": "^1.0.0-beta.18",
+    "rlp": "^2.2.7",
+    "solhint-plugin-prettier": "^0.0.5",
+    "solidity-coverage": "^0.7.17",
+    "solidity-rlp": "^2.0.5"
+  },
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "prettier:check": "prettier-check contracts/**/*.sol",
+    "prettier:fix": "prettier --write contracts/**/*.sol test/**/*.js scripts/**/*.js"
+  }
+}
