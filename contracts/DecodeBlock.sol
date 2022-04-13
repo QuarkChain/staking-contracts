@@ -106,7 +106,7 @@ library DecodeBlock {
     }
 
     function decodeBaseData(RLPReader.RLPItem[] memory HeaderProperties) internal pure returns (BaseData memory Bases) {
-        Bases.Difficulty = HeaderProperties[uint8(HeaderPropertyIndex.Number)].toUint();
+        Bases.Difficulty = HeaderProperties[uint8(HeaderPropertyIndex.Difficulty)].toUint();
         Bases.Number = HeaderProperties[uint8(HeaderPropertyIndex.Number)].toUint();
         Bases.GasLimit = uint64(HeaderProperties[uint8(HeaderPropertyIndex.GasLimit)].toUint());
 
