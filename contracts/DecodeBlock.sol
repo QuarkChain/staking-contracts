@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.8.0;
 
 import "./RLPReader.sol";
@@ -57,7 +58,7 @@ library DecodeBlock {
         bytes Signature;
     }
 
-    enum HeaderPropertyIndex {
+    enum HeaderProperty {
         ParentHash,
         UncleHash,
         Coinbase,
@@ -84,81 +85,73 @@ library DecodeBlock {
     function decodeHeader(bytes memory blockRlpBytes) internal pure returns (Header memory header) {
         // TODO:decode bloom
 
-        RLPReader.RLPItem[] memory HeaderProperties = decodeToHeaderList(blockRlpBytes);
-        header.hashData = decodeHashData(HeaderProperties);
-        header.baseData = decodeBaseData(HeaderProperties);
-        header.validatorData = decodeValidatorData(HeaderProperties);
-        header.commit = decodeCommit(HeaderProperties);
+        RLPReader.RLPItem[] memory list = decodeToHeaderList(blockRlpBytes);
+        header.hashData = decodeHashData(list);
+        header.baseData = decodeBaseData(list);
+        header.validatorData = decodeValidatorData(list);
+        header.commit = decodeCommit(list);
     }
 
     function decodeToHeaderList(bytes memory blockRlpBytes) internal pure returns (RLPReader.RLPItem[] memory) {
         return blockRlpBytes.toRlpItem().toList()[0].toList();
     }
 
-    function decodeHashData(RLPReader.RLPItem[] memory HeaderProperties) internal pure returns (HashData memory Hashs) {
-        Hashs.ParentHash = bytes32(HeaderProperties[uint8(HeaderPropertyIndex.ParentHash)].toUint());
-        Hashs.UncleHash = bytes32(HeaderProperties[uint8(HeaderPropertyIndex.UncleHash)].toUint());
-        Hashs.Coinbase = HeaderProperties[uint8(HeaderPropertyIndex.Coinbase)].toAddress();
+    function decodeHashData(RLPReader.RLPItem[] memory list) internal pure returns (HashData memory Hashs) {
+        Hashs.ParentHash = bytes32(list[uint8(HeaderProperty.ParentHash)].toUint());
+        Hashs.UncleHash = bytes32(list[uint8(HeaderProperty.UncleHash)].toUint());
+        Hashs.Coinbase = list[uint8(HeaderProperty.Coinbase)].toAddress();
 
-        Hashs.Root = bytes32(HeaderProperties[uint8(HeaderPropertyIndex.Root)].toUint());
-        Hashs.TxHash = bytes32(HeaderProperties[uint8(HeaderPropertyIndex.TxHash)].toUint());
-        Hashs.ReceiptHash = bytes32(HeaderProperties[uint8(HeaderPropertyIndex.ReceiptHash)].toUint());
+        Hashs.Root = bytes32(list[uint8(HeaderProperty.Root)].toUint());
+        Hashs.TxHash = bytes32(list[uint8(HeaderProperty.TxHash)].toUint());
+        Hashs.ReceiptHash = bytes32(list[uint8(HeaderProperty.ReceiptHash)].toUint());
     }
 
-    function decodeBaseData(RLPReader.RLPItem[] memory HeaderProperties) internal pure returns (BaseData memory Bases) {
-        Bases.Difficulty = HeaderProperties[uint8(HeaderPropertyIndex.Difficulty)].toUint();
-        Bases.Number = HeaderProperties[uint8(HeaderPropertyIndex.Number)].toUint();
-        Bases.GasLimit = uint64(HeaderProperties[uint8(HeaderPropertyIndex.GasLimit)].toUint());
+    function decodeBaseData(RLPReader.RLPItem[] memory list) internal pure returns (BaseData memory Bases) {
+        Bases.Difficulty = list[uint8(HeaderProperty.Difficulty)].toUint();
+        Bases.Number = list[uint8(HeaderProperty.Number)].toUint();
+        Bases.GasLimit = uint64(list[uint8(HeaderProperty.GasLimit)].toUint());
 
-        Bases.GasUsed = uint64(HeaderProperties[uint8(HeaderPropertyIndex.GasUsed)].toUint());
-        Bases.Time = uint64(HeaderProperties[uint8(HeaderPropertyIndex.Time)].toUint());
-        Bases.Extra = HeaderProperties[uint8(HeaderPropertyIndex.Extra)].toBytes();
+        Bases.GasUsed = uint64(list[uint8(HeaderProperty.GasUsed)].toUint());
+        Bases.Time = uint64(list[uint8(HeaderProperty.Time)].toUint());
+        Bases.Extra = list[uint8(HeaderProperty.Extra)].toBytes();
 
-        Bases.MixDigest = bytes32(HeaderProperties[uint8(HeaderPropertyIndex.MixDigest)].toUint());
-        Bases.Nonce = bytes8(uint64(HeaderProperties[uint8(HeaderPropertyIndex.Nonce)].toUint()));
-        Bases.BaseFee = HeaderProperties[uint8(HeaderPropertyIndex.BaseFee)].toUint();
+        Bases.MixDigest = bytes32(list[uint8(HeaderProperty.MixDigest)].toUint());
+        Bases.Nonce = bytes8(uint64(list[uint8(HeaderProperty.Nonce)].toUint()));
+        Bases.BaseFee = list[uint8(HeaderProperty.BaseFee)].toUint();
     }
 
-    function decodeValidatorData(RLPReader.RLPItem[] memory HeaderProperties)
-        internal
-        pure
-        returns (ValidatorData memory VData)
-    {
-        VData.TimeMs = uint64(HeaderProperties[uint8(HeaderPropertyIndex.TimeMs)].toUint());
-        VData.NextValidators = _decodeNextValidators(HeaderProperties[uint8(HeaderPropertyIndex.NextValidators)]);
-        VData.NextValidatorPowers = _decodeNextValidatorPowers(
-            HeaderProperties[uint8(HeaderPropertyIndex.NextValidatorPowers)]
-        );
+    function decodeValidatorData(RLPReader.RLPItem[] memory list) internal pure returns (ValidatorData memory VData) {
+        VData.TimeMs = uint64(list[uint8(HeaderProperty.TimeMs)].toUint());
+        VData.NextValidators = _decodeNextValidators(list[uint8(HeaderProperty.NextValidators)]);
+        VData.NextValidatorPowers = _decodeNextValidatorPowers(list[uint8(HeaderProperty.NextValidatorPowers)]);
 
-        VData.LastCommitHash = bytes32(HeaderProperties[uint8(HeaderPropertyIndex.LastCommitHash)].toUint());
+        VData.LastCommitHash = bytes32(list[uint8(HeaderProperty.LastCommitHash)].toUint());
     }
 
-    function decodeCommit(RLPReader.RLPItem[] memory HeaderProperties) internal pure returns (Commit memory commit) {
-        RLPReader.RLPItem[] memory list = Property(HeaderProperties, uint8(HeaderPropertyIndex.Commit)).toList();
-        commit.Height = uint64(Property(list, 0).toUint());
-        commit.Round = uint32(Property(list, 1).toUint());
-        commit.BlockID = bytes32(Property(list, 2).toUint());
+    function decodeCommit(RLPReader.RLPItem[] memory properties) internal pure returns (Commit memory commit) {
+        RLPReader.RLPItem[] memory list = property(properties, uint8(HeaderProperty.Commit)).toList();
+        commit.Height = uint64(property(list, 0).toUint());
+        commit.Round = uint32(property(list, 1).toUint());
+        commit.BlockID = bytes32(property(list, 2).toUint());
 
         // TODO: decode commit.Signatures
     }
 
     function decodeNextValidators(bytes memory blockRlpBytes) internal pure returns (address[] memory) {
-        RLPReader.RLPItem[] memory HeaderProperties = blockRlpBytes.toRlpItem().toList()[0].toList();
-        return _decodeNextValidators(HeaderProperties[uint8(HeaderPropertyIndex.NextValidators)]);
+        RLPReader.RLPItem[] memory list = blockRlpBytes.toRlpItem().toList()[0].toList();
+        return _decodeNextValidators(list[uint8(HeaderProperty.NextValidators)]);
     }
 
     function decodeNextValidatorPowers(bytes memory blockRlpBytes) internal pure returns (uint64[] memory array) {
-        RLPReader.RLPItem[] memory HeaderProperties = blockRlpBytes.toRlpItem().toList()[0].toList();
+        RLPReader.RLPItem[] memory list = blockRlpBytes.toRlpItem().toList()[0].toList();
 
-        RLPReader.RLPItem memory _NextValidatorPowers = HeaderProperties[
-            uint8(HeaderPropertyIndex.NextValidatorPowers)
-        ];
+        RLPReader.RLPItem memory _NextValidatorPowers = list[uint8(HeaderProperty.NextValidatorPowers)];
 
         array = _decodeNextValidatorPowers(_NextValidatorPowers);
     }
 
-    function Property(RLPReader.RLPItem[] memory list, uint8 index) internal pure returns (RLPReader.RLPItem memory) {
-        return list[uint8(index)];
+    function property(RLPReader.RLPItem[] memory list, uint8 index) internal pure returns (RLPReader.RLPItem memory) {
+        return list[index];
     }
 
     function _decodeNextValidators(RLPReader.RLPItem memory item) private pure returns (address[] memory array) {
