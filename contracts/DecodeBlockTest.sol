@@ -29,35 +29,64 @@ contract DecodeBlockTest {
         return DecodeBlock.decodeCommit(rlpbytes.decodeToHeaderList()[uint8(DecodeBlock.HeaderProperty.Commit)]);
     }
 
-    function RecoverSignatureTest(bytes calldata signMsg, bytes calldata sig) public pure returns(address){
+    function RecoverSignatureTest(bytes calldata signMsg, bytes calldata sig) public pure returns (address) {
         return DecodeBlock.recoverSignature(signMsg, sig);
     }
 
-    function verifySignatureTest(address addr , bytes calldata signMsg, bytes calldata sig) public pure returns(bool){
+    function verifySignatureTest(
+        address addr,
+        bytes calldata signMsg,
+        bytes calldata sig
+    ) public pure returns (bool) {
         return DecodeBlock.verifySignature(addr, signMsg, sig);
     }
 
-    function verifyAllSignatureTest(DecodeBlock.Commit memory commit,address[] memory validators,uint64[] memory votePowers, bool lookUpByIndex, bool countAllSignatures,uint64 votingPowerNeeded) public pure returns(bool){
-        return DecodeBlock.verifyAllSignature(commit,validators,votePowers,lookUpByIndex,countAllSignatures,votingPowerNeeded);
+    function verifyAllSignatureTest(
+        DecodeBlock.Commit memory commit,
+        address[] memory validators,
+        uint64[] memory votePowers,
+        bool lookUpByIndex,
+        bool countAllSignatures,
+        uint64 votingPowerNeeded
+    ) public pure returns (bool) {
+        return
+            DecodeBlock.verifyAllSignature(
+                commit,
+                validators,
+                votePowers,
+                lookUpByIndex,
+                countAllSignatures,
+                votingPowerNeeded
+            );
     }
 
-    function verifyHeaderTest(bytes memory headerRlpBytes , bytes memory commitRlpBytes ,address[] memory validators,uint64[] memory votePowers,uint64 votingPowerNeeded)public pure returns(bool){
-       return DecodeBlock.verifyHeader(headerRlpBytes,commitRlpBytes,validators,votePowers,votingPowerNeeded);
+    function verifyHeaderTest(
+        bytes memory headerRlpBytes,
+        bytes memory commitRlpBytes,
+        address[] memory validators,
+        uint64[] memory votePowers,
+        uint64 votingPowerNeeded
+    ) public pure returns (bool) {
+        return DecodeBlock.verifyHeader(headerRlpBytes, commitRlpBytes, validators, votePowers, votingPowerNeeded);
     }
 
-    function voteSignBytesTest(DecodeBlock.Commit memory commit,string memory chainId,uint idx)public pure returns(bytes memory){
-        return DecodeBlock.voteSignBytes(commit,chainId,idx);
+    function voteSignBytesTest(
+        DecodeBlock.Commit memory commit,
+        string memory chainId,
+        uint256 idx
+    ) public pure returns (bytes memory) {
+        return DecodeBlock.voteSignBytes(commit, chainId, idx);
     }
 
-    function encodeToRlpBytesTest(DecodeBlock.voteForSign memory vfs) public pure returns(bytes memory){
+    function encodeToRlpBytesTest(DecodeBlock.voteForSign memory vfs) public pure returns (bytes memory) {
         return DecodeBlock.encodeToRlpBytes(vfs);
     }
 
-    function decodeRlpTest(bytes memory rlp)public pure returns(bytes[] memory){
+    function decodeRlpTest(bytes memory rlp) public pure returns (bytes[] memory) {
         return DecodeBlock.decodeRlp(rlp);
     }
 
-    function HashTest(bytes memory signMsg) public pure returns(bytes32){
+    function HashTest(bytes memory signMsg) public pure returns (bytes32) {
         return DecodeBlock.msgHash(signMsg);
     }
 }

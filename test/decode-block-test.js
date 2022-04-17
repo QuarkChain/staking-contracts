@@ -140,31 +140,13 @@ describe("decode block test", function () {
     check("Commit.Round", res.Round, 2);
     check("Commit.BlockID", res.BlockID, "0xcc000000000000000000000000000000000000000000000000000000000000aa");
 
-    let sig0 = [
-      2,
-      '0xAa000000000000000000000000000000000000Aa',
-      BigNumber.from(1000),
-      '0x0102030405',
-    ]
-    checkArray("Commit.Signatures[0]", res.Signatures[0], sig0)
+    let sig0 = [2, "0xAa000000000000000000000000000000000000Aa", BigNumber.from(1000), "0x0102030405"];
+    checkArray("Commit.Signatures[0]", res.Signatures[0], sig0);
 
-    let sig1 = [
-      2,
-      '0xbB000000000000000000000000000000000000bb',
-      BigNumber.from(1001),
-      '0x010203040506',
-    ]
-    checkArray("Commit.Signatures[1]", res.Signatures[1], sig1)
+    let sig1 = [2, "0xbB000000000000000000000000000000000000bb", BigNumber.from(1001), "0x010203040506"];
+    checkArray("Commit.Signatures[1]", res.Signatures[1], sig1);
 
-
-    let sig2 = [
-      2,
-      '0xCC000000000000000000000000000000000000cC',
-      BigNumber.from(1002),
-      '0x01020304050607',
-    ]
-    checkArray("Commit.Signatures[1]", res.Signatures[2], sig2)
+    let sig2 = [2, "0xCC000000000000000000000000000000000000cC", BigNumber.from(1002), "0x01020304050607"];
+    checkArray("Commit.Signatures[1]", res.Signatures[2], sig2);
   });
-
-  
 });
