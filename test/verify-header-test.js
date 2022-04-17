@@ -209,15 +209,11 @@ describe("decode block test", function () {
     ];
     let powers = [1, 1, 1];
 
-    // for (let i=0;i<3;i++){
-    //     let voteSignByte = await db.voteSignBytesTest(commit,"evm_3334",i)
-    //     check("VoteSignBytes",voteSignByte,voteSignBytes[i])
-    // }
     try {
-      let succeed = await db.verifyHeaderTest(headerRlp, commitRlp, validators, powers, 2);
-      console.log(succeed);
+        let succeed = await db.verifyHeaderTest(headerRlp, commitRlp, validators, powers, 2);
+        check("Verify Header",succeed,true)
     } catch (error) {
-      console.log(error);
+        console.log(error);
     }
   });
 });
