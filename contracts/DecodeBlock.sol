@@ -104,11 +104,14 @@ library DecodeBlock {
         Commit
     }
 
-    function verifyHeader(Header memory h,address[] memory validators,uint64[] memory votePowers,uint64 votingPowerNeeded)internal pure returns(bool){
+    function verifyHeader(bytes memory headerRlpBytes , bytes memory commitRlpBytes ,address[] memory validators,uint64[] memory votePowers,uint64 votingPowerNeeded)internal pure returns(bool){
         // ToDo:verify header base data 
-    
+        bytes32 hash = msgHash(headerRlpBytes);
+        Commit memory commit = decodeCommit(commitRlpBytes.toRlpItem());
+        require(commit.BlockID == hash,"HeaderHash and BlockID are not equal");
+        
         // verify all signatures
-        require(verifyAllSignature(h.commit,validators,votePowers,true,false,votingPowerNeeded),"failed to verify all signature");
+        require(verifyAllSignature(commit,validators,votePowers,true,false,votingPowerNeeded),"failed to verify all signature");
 
         return true;
     }
@@ -121,7 +124,7 @@ library DecodeBlock {
             address vaddr = commit.Signatures[i].ValidatorAddress;
 
             if (lookUpByIndex) {
-                require(vaddr == validators[i] , "no equal");
+                require(vaddr == validators[i] , "validator not exist");
                 idx = i;
 		    }else{
                 // ToDo:
@@ -145,7 +148,8 @@ library DecodeBlock {
 
     function verifySignature(address addr,bytes memory signMsg, bytes memory sig) internal pure returns(bool){
         bytes32 hash = msgHash(signMsg);
-        address recAddr = ECDSA.recover(hash,sig);
+        (uint8 v , bytes32 r,bytes32 s) = getVRS(sig);
+        address recAddr = ecrecover(hash,v,r,s);
         return (recAddr == addr);
     }
 
@@ -162,6 +166,9 @@ library DecodeBlock {
             v := mload(add(sig,0x41))
             r := mload(add(sig,0x20))
             s := mload(add(sig,0x40))
+        }
+        if (v==0 || v ==1){
+            v+=27;
         }
         return (v,r,s);
     }
@@ -182,7 +189,7 @@ library DecodeBlock {
         header.hashData = decodeHashData(list);
         header.baseData = decodeBaseData(list);
         header.validatorData = decodeValidatorData(list);
-        header.commit = decodeCommit(list);
+        header.commit = decodeCommit(list[uint8(HeaderProperty.Commit)]);
     }
 
     function decodeToHeaderList(bytes memory blockRlpBytes) internal pure returns (RLPReader.RLPItem[] memory) {
@@ -221,8 +228,8 @@ library DecodeBlock {
         VData.LastCommitHash = bytes32(list[uint8(HeaderProperty.LastCommitHash)].toUint());
     }
 
-    function decodeCommit(RLPReader.RLPItem[] memory properties) internal pure returns (Commit memory commit) {
-        RLPReader.RLPItem[] memory list = property(properties, uint8(HeaderProperty.Commit)).toList();
+    function decodeCommit(RLPReader.RLPItem memory commitItem) internal pure returns (Commit memory commit) {
+        RLPReader.RLPItem[] memory list = commitItem.toList();
         commit.Height = uint64(property(list, 0).toUint());
         commit.Round = uint32(property(list, 1).toUint());
         commit.BlockID = bytes32(property(list, 2).toUint());
@@ -312,4 +319,8 @@ library DecodeBlock {
     function _decodeNextValidatorPowers(RLPReader.RLPItem memory item) private pure returns (uint64[] memory array) {
         array = item.toUint64Array();
     }
+
+    // function arrayToMap(bytes[] memory array)private pure returns( mapping(bytes32=>uint8)  memory){
+
+    // }
 }

@@ -26,7 +26,7 @@ contract DecodeBlockTest {
     }
 
     function DecodeCommitTest(bytes memory rlpbytes) public pure returns (DecodeBlock.Commit memory) {
-        return DecodeBlock.decodeCommit(rlpbytes.decodeToHeaderList());
+        return DecodeBlock.decodeCommit(rlpbytes.decodeToHeaderList()[uint8(DecodeBlock.HeaderProperty.Commit)]);
     }
 
     function RecoverSignatureTest(bytes calldata signMsg, bytes calldata sig) public pure returns(address){
@@ -39,6 +39,10 @@ contract DecodeBlockTest {
 
     function verifyAllSignatureTest(DecodeBlock.Commit memory commit,address[] memory validators,uint64[] memory votePowers, bool lookUpByIndex, bool countAllSignatures,uint64 votingPowerNeeded) public pure returns(bool){
         return DecodeBlock.verifyAllSignature(commit,validators,votePowers,lookUpByIndex,countAllSignatures,votingPowerNeeded);
+    }
+
+    function verifyHeaderTest(bytes memory headerRlpBytes , bytes memory commitRlpBytes ,address[] memory validators,uint64[] memory votePowers,uint64 votingPowerNeeded)public pure returns(bool){
+       return DecodeBlock.verifyHeader(headerRlpBytes,commitRlpBytes,validators,votePowers,votingPowerNeeded);
     }
 
     function voteSignBytesTest(DecodeBlock.Commit memory commit,string memory chainId,uint idx)public pure returns(bytes memory){

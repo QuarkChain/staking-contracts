@@ -34,8 +34,6 @@ describe("decode block test", function () {
   it("decode Header", async function () {
     let res = await db.DecodeHeaderTest(BlockRlpBytes);
 
-    console.log(res.commit);
-
     check("ParentHash", res.hashData.ParentHash, "0x112233445566778899001122334455667788990011223344556677889900aabb");
     check("UncleHash", res.hashData.UncleHash, "0x000033445566778899001122334455667788990011223344556677889900aabb");
     check("Coinbase", res.hashData.Coinbase, "0xD76Fb45Ed105f1851D74233f884D256C4FdAd634");
@@ -141,8 +139,6 @@ describe("decode block test", function () {
     check("Commit.Height", res.Height, BigNumber.from(100));
     check("Commit.Round", res.Round, 2);
     check("Commit.BlockID", res.BlockID, "0xcc000000000000000000000000000000000000000000000000000000000000aa");
-
-    console.log(res.Signatures)
 
     let sig0 = [
       2,
