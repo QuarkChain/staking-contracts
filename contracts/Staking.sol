@@ -9,11 +9,13 @@ import {DataTypes as dt} from "./DataTypes.sol";
 // import "../interfaces/ISigsVerifier.sol";
 import "./Pauser.sol";
 import "./Whitelist.sol";
+import "./DecodeBlock.sol";
 
 /**
  * @title A Staking contract shared by all external sidechains and apps
  */
 contract Staking is Pauser, Whitelist {
+    using DecodeBlock for bytes;
     using SafeERC20 for IERC20;
     using ECDSA for bytes32;
 
@@ -36,7 +38,7 @@ contract Staking is Pauser, Whitelist {
     // Current validator info from side-chain's epoch header
     // Use to verify commit if the side-chain does not change validators.
     address[] public currentEpochIdx;
-    uint256[] public currentVotingPowers;
+    uint64[] public currentVotingPowers;
     uint256 public epochIdx;
 
     // Proposed validator info which should be adopted by side-chain for next epoch
@@ -780,13 +782,10 @@ contract Staking is Pauser, Whitelist {
     /**
      * Create validator set for an epoch
      */
-    function createEpochValidators(bytes memory _epochHeaderBytes) public {
-        // TODO:
-        // epochHeader contains
-        // - commit from epoch (epochIdx - 1)'s validators
-        // - new validators for epoch epochIdx
-        // Verify commit using current validators
-        // call _createEpochValidators()
+    function createEpochValidators(bytes memory _epochHeaderBytes,bytes memory commitBytes) public {
+        //1. verify epoch header 
+        require(DecodeBlock.verifyHeader(_epochHeaderBytes,commitBytes,currentEpochIdx,currentVotingPowers,1000),"invalid header");
+        _createEpochValidators(epochIdx+1, _epochHeaderBytes.decodeNextValidators(),_epochHeaderBytes.decodeNextValidatorPowers());
     }
 
     function getEpochValidators()
@@ -808,7 +807,7 @@ contract Staking is Pauser, Whitelist {
     function _createEpochValidators(
         uint256 _epochIdx,
         address[] memory _epochSigners,
-        uint256[] memory _epochVotingPowers
+        uint64[] memory _epochVotingPowers
     ) internal {
         require(_epochIdx > epochIdx, "epoch too old");
 
@@ -820,7 +819,9 @@ contract Staking is Pauser, Whitelist {
         epochIdx = _epochIdx;
         currentEpochIdx = _epochSigners;
         currentVotingPowers = _epochVotingPowers;
+    }
 
+    function proposalValidators() public view returns(address[] memory ,uint256[] memory ){
         uint256 _maxBondedValidators = params[dt.ParamName.MaxBondedValidators];
         address[] memory _proposedValidators = new address[](_maxBondedValidators);
         uint256[] memory _proposedVotingPowers = new uint256[](_maxBondedValidators);
@@ -830,7 +831,7 @@ contract Staking is Pauser, Whitelist {
                 _proposedVotingPowers[i] = validators[bondedValAddrs[i]].tokens;
             }
         }
-        proposedValidators = _proposedValidators;
-        proposedVotingPowers = _proposedVotingPowers;
+
+        return (_proposedValidators,_proposedVotingPowers);
     }
 }
