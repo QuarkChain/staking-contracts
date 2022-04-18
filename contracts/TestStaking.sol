@@ -47,7 +47,7 @@ contract TestStaking is Staking {
     function createEpochValidatorsTest(
         uint256 _epochIdx,
         address[] memory _epochSigners,
-        uint256[] memory _epochVotingPowers
+        uint64[] memory _epochVotingPowers
     ) public {
         _createEpochValidators(_epochIdx, _epochSigners, _epochVotingPowers);
     }
