@@ -119,7 +119,7 @@ library DecodeBlock {
         // verify all signatures
         require(
             verifyAllSignature(commit, validators, votePowers, true, false, votingPowerNeeded),
-            "failed to verify all signature"
+            "failed to verify all signatures"
         );
 
         return true;
@@ -212,6 +212,9 @@ library DecodeBlock {
     {
         require(sig.length == 65, "signature with wrong length");
         (v, r, s) = (uint8(sig[64]), bytes32(sig[:32]), bytes32(sig[32:64]));
+        if (v == 0 || v == 1) {
+            v += 27;
+        }
         return (v, r, s);
     }
 
@@ -229,8 +232,8 @@ library DecodeBlock {
         header.commit = decodeCommit(list[uint8(HeaderProperty.Commit)]);
     }
 
-    function decodeToHeaderList(bytes memory blockRlpBytes) internal pure returns (RLPReader.RLPItem[] memory) {
-        return blockRlpBytes.toRlpItem().toList()[0].toList();
+    function decodeToHeaderList(bytes memory headerRLPBytes) internal pure returns (RLPReader.RLPItem[] memory) {
+        return headerRLPBytes.toRlpItem().toList();
     }
 
     function decodeHashData(RLPReader.RLPItem[] memory list) internal pure returns (HashData memory Hashs) {
@@ -288,13 +291,13 @@ library DecodeBlock {
         cs.Signature = property(list, 3).toBytes();
     }
 
-    function decodeNextValidators(bytes memory blockRlpBytes) internal pure returns (address[] memory) {
-        RLPReader.RLPItem[] memory list = blockRlpBytes.toRlpItem().toList()[0].toList();
+    function decodeNextValidators(bytes memory headerRLPBytes) internal pure returns (address[] memory) {
+        RLPReader.RLPItem[] memory list = decodeToHeaderList(headerRLPBytes);
         return _decodeNextValidators(list[uint8(HeaderProperty.NextValidators)]);
     }
 
-    function decodeNextValidatorPowers(bytes memory blockRlpBytes) internal pure returns (uint64[] memory array) {
-        RLPReader.RLPItem[] memory list = blockRlpBytes.toRlpItem().toList()[0].toList();
+    function decodeNextValidatorPowers(bytes memory headerRLPBytes) internal pure returns (uint64[] memory array) {
+        RLPReader.RLPItem[] memory list = decodeToHeaderList(headerRLPBytes);
 
         RLPReader.RLPItem memory _NextValidatorPowers = list[uint8(HeaderProperty.NextValidatorPowers)];
 
