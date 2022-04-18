@@ -782,10 +782,17 @@ contract Staking is Pauser, Whitelist {
     /**
      * Create validator set for an epoch
      */
-    function createEpochValidators(bytes memory _epochHeaderBytes,bytes memory commitBytes) public {
-        //1. verify epoch header 
-        require(DecodeBlock.verifyHeader(_epochHeaderBytes,commitBytes,currentEpochIdx,currentVotingPowers,1000),"invalid header");
-        _createEpochValidators(epochIdx+1, _epochHeaderBytes.decodeNextValidators(),_epochHeaderBytes.decodeNextValidatorPowers());
+    function createEpochValidators(bytes memory _epochHeaderBytes, bytes memory commitBytes) public {
+        //1. verify epoch header
+        require(
+            DecodeBlock.verifyHeader(_epochHeaderBytes, commitBytes, currentEpochIdx, currentVotingPowers, 1000),
+            "invalid header"
+        );
+        _createEpochValidators(
+            epochIdx + 1,
+            _epochHeaderBytes.decodeNextValidators(),
+            _epochHeaderBytes.decodeNextValidatorPowers()
+        );
     }
 
     function getEpochValidators()
@@ -821,7 +828,7 @@ contract Staking is Pauser, Whitelist {
         currentVotingPowers = _epochVotingPowers;
     }
 
-    function proposalValidators() public view returns(address[] memory ,uint256[] memory ){
+    function proposalValidators() public view returns (address[] memory, uint256[] memory) {
         uint256 _maxBondedValidators = params[dt.ParamName.MaxBondedValidators];
         address[] memory _proposedValidators = new address[](_maxBondedValidators);
         uint256[] memory _proposedVotingPowers = new uint256[](_maxBondedValidators);
@@ -832,6 +839,6 @@ contract Staking is Pauser, Whitelist {
             }
         }
 
-        return (_proposedValidators,_proposedVotingPowers);
+        return (_proposedValidators, _proposedVotingPowers);
     }
 }
