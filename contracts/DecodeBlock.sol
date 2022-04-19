@@ -218,11 +218,12 @@ library DecodeBlock {
         // TODO:decode bloom
 
         RLPReader.RLPItem[] memory list = decodeToHeaderList(blockRlpBytes);
-        require(list.length == 21, "Incorrect header properties");
         header.hashData = decodeHashData(list);
         header.baseData = decodeBaseData(list);
         header.validatorData = decodeValidatorData(list);
-        header.commit = decodeCommit(list[uint8(HeaderProperty.Commit)]);
+        if (list.length == 21) {
+            header.commit = decodeCommit(list[uint8(HeaderProperty.Commit)]);
+        }
     }
 
     function decodeToHeaderList(bytes memory headerRLPBytes) internal pure returns (RLPReader.RLPItem[] memory) {

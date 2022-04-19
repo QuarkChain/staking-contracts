@@ -6,6 +6,7 @@ import "./DecodeBlock.sol";
 
 contract DecodeBlockTest {
     using DecodeBlock for bytes;
+    using RLPReader for bytes;
 
     function DecodeHeaderTest(bytes memory rlpbytes) public pure returns (DecodeBlock.Header memory) {
         return DecodeBlock.decodeHeader(rlpbytes);
@@ -27,8 +28,8 @@ contract DecodeBlockTest {
         return DecodeBlock.decodeNextValidators(rlpbytes);
     }
 
-    function DecodeCommitTest(bytes memory rlpbytes) public pure returns (DecodeBlock.Commit memory) {
-        return DecodeBlock.decodeCommit(rlpbytes.decodeToHeaderList()[uint8(DecodeBlock.HeaderProperty.Commit)]);
+    function DecodeCommitTest(bytes memory commitRLPbytes) public pure returns (DecodeBlock.Commit memory) {
+        return DecodeBlock.decodeCommit(commitRLPbytes.toRlpItem());
     }
 
     function RecoverSignatureTest(bytes calldata signMsg, bytes calldata sig) public pure returns (address) {
