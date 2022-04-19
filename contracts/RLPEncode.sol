@@ -1,10 +1,12 @@
-pragma solidity ^0.8.0;
+// SPDX-License-Identifier: GPL-3.0-only
 
 /**
  * @title RLPEncode
  * @dev A simple RLP encoding library.
  * @author Bakaoh
  */
+pragma solidity ^0.8.0;
+
 library RLPEncode {
     /*
      * Internal functions
