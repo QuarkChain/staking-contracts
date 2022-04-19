@@ -3,12 +3,13 @@ pragma solidity ^0.8.0;
 
 import "./RLPReader.sol";
 import "./RLPEncode.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 library DecodeBlock {
     using RLPReader for RLPReader.RLPItem;
     using RLPReader for RLPReader.Iterator;
     using RLPReader for bytes;
+    using Strings for uint256;
 
     struct Header {
         bytes Bloom; //[256]byte
@@ -42,7 +43,7 @@ library DecodeBlock {
     struct ValidatorData {
         uint64 TimeMs;
         address[] NextValidators;
-        uint64[] NextValidatorPowers;
+        uint256[] NextValidatorPowers;
         bytes32 LastCommitHash;
     }
 
@@ -108,8 +109,7 @@ library DecodeBlock {
         bytes memory headerRlpBytes,
         bytes memory commitRlpBytes,
         address[] memory validators,
-        uint64[] memory votePowers,
-        uint64 votingPowerNeeded
+        uint256[] memory votePowers
     ) internal pure returns (bool) {
         // ToDo:verify header base data
         bytes32 hash = msgHash(headerRlpBytes);
@@ -118,38 +118,48 @@ library DecodeBlock {
 
         // verify all signatures
         require(
-            verifyAllSignature(commit, validators, votePowers, true, false, votingPowerNeeded),
+            verifyAllSignature(commit, validators, votePowers, true, false, votingPowerNeed(votePowers), 3334),
             "failed to verify all signatures"
         );
 
         return true;
     }
 
+    function votingPowerNeed(uint256[] memory votePowers) internal pure returns (uint256 power) {
+        for (uint256 i = 0; i < votePowers.length; i++) {
+            power += votePowers[i];
+        }
+        power = (power * 2) / 3;
+    }
+
     function verifyAllSignature(
         Commit memory commit,
         address[] memory validators,
-        uint64[] memory votePowers,
+        uint256[] memory votePowers,
         bool lookUpByIndex,
         bool countAllSignatures,
-        uint64 votingPowerNeeded
+        uint256 votingPowerNeeded,
+        uint256 chainId
     ) internal pure returns (bool) {
         require(votePowers.length == validators.length, "incorrect length");
-        uint64 talliedVotingPower;
+        uint256 talliedVotingPower;
         uint256 idx;
         for (uint256 i = 0; i < commit.Signatures.length; i++) {
             address vaddr = commit.Signatures[i].ValidatorAddress;
 
             if (lookUpByIndex) {
-                require(vaddr == validators[i], "validator not exist");
+                require(vaddr == validators[i], "validator is not exist");
                 idx = i;
             } else {
-                // ToDo:
+                assert(false);
             }
 
-            bytes memory signMsg = voteSignBytes(commit, "evm_3334", i);
-            require(verifySignature(vaddr, signMsg, commit.Signatures[i].Signature), "failed to verify signature");
+            bytes memory signMsg = voteSignBytes(commit, chainId, i);
 
-            talliedVotingPower += votePowers[idx];
+            if (verifySignature(vaddr, signMsg, commit.Signatures[i].Signature)) {
+                // valid signature
+                talliedVotingPower += votePowers[idx];
+            }
 
             if (!countAllSignatures && talliedVotingPower > votingPowerNeeded) {
                 return true;
@@ -195,23 +205,6 @@ library DecodeBlock {
             r := mload(add(sig, 0x20))
             s := mload(add(sig, 0x40))
         }
-        if (v == 0 || v == 1) {
-            v += 27;
-        }
-        return (v, r, s);
-    }
-
-    function getVRSCalldata(bytes calldata sig)
-        internal
-        pure
-        returns (
-            uint8 v,
-            bytes32 r,
-            bytes32 s
-        )
-    {
-        require(sig.length == 65, "signature with wrong length");
-        (v, r, s) = (uint8(sig[64]), bytes32(sig[:32]), bytes32(sig[32:64]));
         if (v == 0 || v == 1) {
             v += 27;
         }
@@ -269,6 +262,7 @@ library DecodeBlock {
     }
 
     function decodeCommit(RLPReader.RLPItem memory commitItem) internal pure returns (Commit memory commit) {
+        require(commitItem.isList(), "Commit RLP item should be list");
         RLPReader.RLPItem[] memory list = commitItem.toList();
         commit.Height = uint64(property(list, 0).toUint());
         commit.Round = uint32(property(list, 1).toUint());
@@ -296,7 +290,7 @@ library DecodeBlock {
         return _decodeNextValidators(list[uint8(HeaderProperty.NextValidators)]);
     }
 
-    function decodeNextValidatorPowers(bytes memory headerRLPBytes) internal pure returns (uint64[] memory array) {
+    function decodeNextValidatorPowers(bytes memory headerRLPBytes) internal pure returns (uint256[] memory array) {
         RLPReader.RLPItem[] memory list = decodeToHeaderList(headerRLPBytes);
 
         RLPReader.RLPItem memory _NextValidatorPowers = list[uint8(HeaderProperty.NextValidatorPowers)];
@@ -315,7 +309,7 @@ library DecodeBlock {
 
     function voteSignBytes(
         Commit memory commit,
-        string memory chainId,
+        uint256 chainId,
         uint256 idx
     ) internal pure returns (bytes memory) {
         voteForSign memory vfs;
@@ -327,7 +321,7 @@ library DecodeBlock {
         }
 
         vfs.TimestampMs = commit.Signatures[idx].TimestampMs;
-        vfs.ChainID = chainId;
+        vfs.ChainID = string(abi.encodePacked("evm_", chainId.toString()));
         return encodeToRlpBytes(vfs);
     }
 
@@ -359,7 +353,7 @@ library DecodeBlock {
         array = item.toAddressArray();
     }
 
-    function _decodeNextValidatorPowers(RLPReader.RLPItem memory item) private pure returns (uint64[] memory array) {
-        array = item.toUint64Array();
+    function _decodeNextValidatorPowers(RLPReader.RLPItem memory item) private pure returns (uint256[] memory array) {
+        array = item.toUintArray();
     }
 }

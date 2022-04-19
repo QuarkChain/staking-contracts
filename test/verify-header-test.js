@@ -116,6 +116,7 @@ describe("decode block test", function () {
     ];
     let sigs = [sig1, sig2, sig3];
     let commit = [100, 2, BlockID, sigs];
+    let chainId = 3334;
 
     let voteSignBytes = [
       "0xf1026402a0f37408df54bc50498ee191212106d581d262bc382c985aa994809d4844b196e88398b2f18865766d5f33333334",
@@ -130,12 +131,12 @@ describe("decode block test", function () {
     let powers = [1, 1, 1];
 
     for (let i = 0; i < 3; i++) {
-      let voteSignByte = await db.voteSignBytesTest(commit, "evm_3334", i);
+      let voteSignByte = await db.voteSignBytesTest(commit, 3334, i);
       check("VoteSignBytes", voteSignByte, voteSignBytes[i]);
     }
 
     try {
-      let succeed = await db.verifyAllSignatureTest(commit, validators, powers, true, false, 2);
+      let succeed = await db.verifyAllSignatureTest(commit, validators, powers, true, false, 2, chainId);
       check("Verify All Signature", succeed, true);
     } catch (error) {
       console.log(error);
@@ -171,6 +172,7 @@ describe("decode block test", function () {
     ];
     let sigs = [sig1, sig2, sig3];
     let commit = [100, 2, BlockID, sigs];
+    let chainId = 3334;
 
     let voteSignBytes = [
       "0xf1026402a0f37408df54bc50498ee191212106d581d262bc382c985aa994809d4844b196e88398b2f18865766d5f33333334",
@@ -185,12 +187,12 @@ describe("decode block test", function () {
     let powers = [1, 1, 1];
 
     for (let i = 0; i < 3; i++) {
-      let voteSignByte = await db.voteSignBytesTest(commit, "evm_3334", i);
+      let voteSignByte = await db.voteSignBytesTest(commit, 3334, i);
       check("VoteSignBytes", voteSignByte, voteSignBytes[i]);
     }
 
     try {
-      let succeed = await db.verifyAllSignatureTest(commit, validators, powers, true, false, 3);
+      let succeed = await db.verifyAllSignatureTest(commit, validators, powers, true, false, 3, chainId);
       check("Verify All Signature", succeed, false);
     } catch (error) {
       console.log(error);
@@ -210,10 +212,10 @@ describe("decode block test", function () {
     let powers = [1, 1, 1];
 
     try {
-        let succeed = await db.verifyHeaderTest(headerRlp, commitRlp, validators, powers, 2);
-        check("Verify Header",succeed,true)
+      let succeed = await db.verifyHeaderTest(headerRlp, commitRlp, validators, powers);
+      check("Verify Header", succeed, true);
     } catch (error) {
-        console.log(error);
+      console.log(error);
     }
   });
 });

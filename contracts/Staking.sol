@@ -38,7 +38,7 @@ contract Staking is Pauser, Whitelist {
     // Current validator info from side-chain's epoch header
     // Use to verify commit if the side-chain does not change validators.
     address[] public currentEpochIdx;
-    uint64[] public currentVotingPowers;
+    uint256[] public currentVotingPowers;
     uint256 public epochIdx;
 
     // Proposed validator info which should be adopted by side-chain for next epoch
@@ -785,7 +785,7 @@ contract Staking is Pauser, Whitelist {
     function createEpochValidators(bytes memory _epochHeaderBytes, bytes memory commitBytes) public {
         //1. verify epoch header
         require(
-            DecodeBlock.verifyHeader(_epochHeaderBytes, commitBytes, currentEpochIdx, currentVotingPowers, 1000),
+            DecodeBlock.verifyHeader(_epochHeaderBytes, commitBytes, currentEpochIdx, currentVotingPowers),
             "invalid header"
         );
         _createEpochValidators(
@@ -814,7 +814,7 @@ contract Staking is Pauser, Whitelist {
     function _createEpochValidators(
         uint256 _epochIdx,
         address[] memory _epochSigners,
-        uint64[] memory _epochVotingPowers
+        uint256[] memory _epochVotingPowers
     ) internal {
         require(_epochIdx > epochIdx, "epoch too old");
 

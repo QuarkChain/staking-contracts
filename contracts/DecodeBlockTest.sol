@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 pragma solidity ^0.8.0;
 
 import "./DecodeBlock.sol";
@@ -44,10 +46,11 @@ contract DecodeBlockTest {
     function verifyAllSignatureTest(
         DecodeBlock.Commit memory commit,
         address[] memory validators,
-        uint64[] memory votePowers,
+        uint256[] memory votePowers,
         bool lookUpByIndex,
         bool countAllSignatures,
-        uint64 votingPowerNeeded
+        uint256 votingPowerNeeded,
+        uint256 chainId
     ) public pure returns (bool) {
         return
             DecodeBlock.verifyAllSignature(
@@ -56,7 +59,8 @@ contract DecodeBlockTest {
                 votePowers,
                 lookUpByIndex,
                 countAllSignatures,
-                votingPowerNeeded
+                votingPowerNeeded,
+                chainId
             );
     }
 
@@ -64,15 +68,14 @@ contract DecodeBlockTest {
         bytes memory headerRlpBytes,
         bytes memory commitRlpBytes,
         address[] memory validators,
-        uint64[] memory votePowers,
-        uint64 votingPowerNeeded
+        uint256[] memory votePowers
     ) public pure returns (bool) {
-        return DecodeBlock.verifyHeader(headerRlpBytes, commitRlpBytes, validators, votePowers, votingPowerNeeded);
+        return DecodeBlock.verifyHeader(headerRlpBytes, commitRlpBytes, validators, votePowers);
     }
 
     function voteSignBytesTest(
         DecodeBlock.Commit memory commit,
-        string memory chainId,
+        uint256 chainId,
         uint256 idx
     ) public pure returns (bytes memory) {
         return DecodeBlock.voteSignBytes(commit, chainId, idx);
