@@ -114,7 +114,7 @@ library DecodeBlock {
         // ToDo:verify header base data
         bytes32 hash = msgHash(headerRlpBytes);
         Commit memory commit = decodeCommit(commitRlpBytes.toRlpItem());
-        require(commit.BlockID == hash, "HeaderHash and BlockID are not equal");
+        require(commit.BlockID == hash, "incorrect BlockID");
 
         // verify all signatures
         require(
@@ -148,7 +148,7 @@ library DecodeBlock {
             address vaddr = commit.Signatures[i].ValidatorAddress;
 
             if (lookUpByIndex) {
-                require(vaddr == validators[i], "validator is not exist");
+                require(vaddr == validators[i], "validator no exist");
                 idx = i;
             } else {
                 assert(false);
@@ -199,7 +199,7 @@ library DecodeBlock {
             bytes32 s
         )
     {
-        require(sig.length == 65, "signature with wrong length");
+        require(sig.length == 65, "wrong sig length");
         assembly {
             v := mload(add(sig, 0x41))
             r := mload(add(sig, 0x20))
@@ -218,7 +218,7 @@ library DecodeBlock {
         // TODO:decode bloom
 
         RLPReader.RLPItem[] memory list = decodeToHeaderList(blockRlpBytes);
-        require(list.length == 21, "Incorrect number of header properties");
+        require(list.length == 21, "Incorrect header properties");
         header.hashData = decodeHashData(list);
         header.baseData = decodeBaseData(list);
         header.validatorData = decodeValidatorData(list);
@@ -262,7 +262,7 @@ library DecodeBlock {
     }
 
     function decodeCommit(RLPReader.RLPItem memory commitItem) internal pure returns (Commit memory commit) {
-        require(commitItem.isList(), "Commit RLP item should be list");
+        require(commitItem.isList(), "no list");
         RLPReader.RLPItem[] memory list = commitItem.toList();
         commit.Height = uint64(property(list, 0).toUint());
         commit.Round = uint32(property(list, 1).toUint());
@@ -277,7 +277,7 @@ library DecodeBlock {
     }
 
     function decodeCommitSig(RLPReader.RLPItem memory csItem) internal pure returns (CommitSig memory cs) {
-        require(csItem.isList(), "CommmitSig RLP item should be list");
+        require(csItem.isList(), "no list");
         RLPReader.RLPItem[] memory list = csItem.toList();
         cs.BlockIDFlag = uint8(property(list, 0).toUint());
         cs.ValidatorAddress = property(list, 1).toAddress();

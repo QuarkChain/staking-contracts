@@ -394,100 +394,100 @@ contract Staking is Pauser, Whitelist {
     //     emit Slash(valAddr, request.nonce, slashAmt);
     // }
 
-    function collectForfeiture() external {
-        require(forfeiture > 0, "Nothing to collect");
-        CELER_TOKEN.safeTransfer(rewardContract, forfeiture);
-        forfeiture = 0;
-    }
+    // function collectForfeiture() external {
+    //     require(forfeiture > 0, "Nothing to collect");
+    //     CELER_TOKEN.safeTransfer(rewardContract, forfeiture);
+    //     forfeiture = 0;
+    // }
 
-    /**
-     * @notice Validator notice event, could be triggered by anyone
-     */
-    function validatorNotice(
-        address _valAddr,
-        string calldata _key,
-        bytes calldata _data
-    ) external {
-        dt.Validator storage validator = validators[_valAddr];
-        require(validator.status != dt.ValidatorStatus.Null, "Validator is not initialized");
-        emit ValidatorNotice(_valAddr, _key, _data, msg.sender);
-    }
+    // /**
+    //  * @notice Validator notice event, could be triggered by anyone
+    //  */
+    // function validatorNotice(
+    //     address _valAddr,
+    //     string calldata _key,
+    //     bytes calldata _data
+    // ) external {
+    //     dt.Validator storage validator = validators[_valAddr];
+    //     require(validator.status != dt.ValidatorStatus.Null, "Validator is not initialized");
+    //     emit ValidatorNotice(_valAddr, _key, _data, msg.sender);
+    // }
 
-    function setParamValue(dt.ParamName _name, uint256 _value) external {
-        require(msg.sender == govContract, "Caller is not gov contract");
-        if (_name == dt.ParamName.MaxBondedValidators) {
-            require(bondedValAddrs.length <= _value, "invalid value");
-        }
-        params[_name] = _value;
-    }
+    // function setParamValue(dt.ParamName _name, uint256 _value) external {
+    //     require(msg.sender == govContract, "Caller is not gov contract");
+    //     if (_name == dt.ParamName.MaxBondedValidators) {
+    //         require(bondedValAddrs.length <= _value, "invalid value");
+    //     }
+    //     params[_name] = _value;
+    // }
 
-    function setGovContract(address _addr) external onlyOwner {
-        govContract = _addr;
-    }
+    // function setGovContract(address _addr) external onlyOwner {
+    //     govContract = _addr;
+    // }
 
-    function setRewardContract(address _addr) external onlyOwner {
-        rewardContract = _addr;
-    }
+    // function setRewardContract(address _addr) external onlyOwner {
+    //     rewardContract = _addr;
+    // }
 
-    /**
-     * @notice Set max slash factor
-     */
-    function setMaxSlashFactor(uint256 _maxSlashFactor) external onlyOwner {
-        params[dt.ParamName.MaxSlashFactor] = _maxSlashFactor;
-    }
+    // /**
+    //  * @notice Set max slash factor
+    //  */
+    // function setMaxSlashFactor(uint256 _maxSlashFactor) external onlyOwner {
+    //     params[dt.ParamName.MaxSlashFactor] = _maxSlashFactor;
+    // }
 
-    /**
-     * @notice Owner drains tokens when the contract is paused
-     * @dev emergency use only
-     * @param _amount drained token amount
-     */
-    function drainToken(uint256 _amount) external whenPaused onlyOwner {
-        CELER_TOKEN.safeTransfer(msg.sender, _amount);
-    }
+    // /**
+    //  * @notice Owner drains tokens when the contract is paused
+    //  * @dev emergency use only
+    //  * @param _amount drained token amount
+    //  */
+    // function drainToken(uint256 _amount) external whenPaused onlyOwner {
+    //     CELER_TOKEN.safeTransfer(msg.sender, _amount);
+    // }
 
-    /**************************
-     *  Public View Functions *
-     **************************/
+    // /**************************
+    //  *  Public View Functions *
+    //  **************************/
 
-    /**
-     * @notice Validate if a message is signed by quorum tokens
-     * @param _msg signed message
-     * @param _sigs list of validator signatures
-     */
-    function verifySignatures(bytes memory _msg, bytes[] memory _sigs) public view returns (bool) {
-        bytes32 hash = keccak256(_msg).toEthSignedMessageHash();
-        uint256 signedTokens;
-        address prev = address(0);
-        uint256 quorum = getQuorumTokens();
-        for (uint256 i = 0; i < _sigs.length; i++) {
-            address signer = hash.recover(_sigs[i]);
-            require(signer > prev, "Signers not in ascending order");
-            prev = signer;
-            dt.Validator storage validator = validators[signerVals[signer]];
-            if (validator.status != dt.ValidatorStatus.Bonded) {
-                continue;
-            }
-            signedTokens += validator.tokens;
-            if (signedTokens >= quorum) {
-                return true;
-            }
-        }
-        revert("Quorum not reached");
-    }
+    // /**
+    //  * @notice Validate if a message is signed by quorum tokens
+    //  * @param _msg signed message
+    //  * @param _sigs list of validator signatures
+    //  */
+    // function verifySignatures(bytes memory _msg, bytes[] memory _sigs) public view returns (bool) {
+    //     bytes32 hash = keccak256(_msg).toEthSignedMessageHash();
+    //     uint256 signedTokens;
+    //     address prev = address(0);
+    //     uint256 quorum = getQuorumTokens();
+    //     for (uint256 i = 0; i < _sigs.length; i++) {
+    //         address signer = hash.recover(_sigs[i]);
+    //         require(signer > prev, "Signers not in ascending order");
+    //         prev = signer;
+    //         dt.Validator storage validator = validators[signerVals[signer]];
+    //         if (validator.status != dt.ValidatorStatus.Bonded) {
+    //             continue;
+    //         }
+    //         signedTokens += validator.tokens;
+    //         if (signedTokens >= quorum) {
+    //             return true;
+    //         }
+    //     }
+    //     revert("Quorum not reached");
+    // }
 
-    /**
-     * @notice Verifies that a message is signed by a quorum among the validators.
-     * @param _msg signed message
-     * @param _sigs the list of signatures
-     */
-    function verifySigs(
-        bytes memory _msg,
-        bytes[] calldata _sigs,
-        address[] calldata,
-        uint256[] calldata
-    ) public view {
-        require(verifySignatures(_msg, _sigs), "Failed to verify sigs");
-    }
+    // /**
+    //  * @notice Verifies that a message is signed by a quorum among the validators.
+    //  * @param _msg signed message
+    //  * @param _sigs the list of signatures
+    //  */
+    // function verifySigs(
+    //     bytes memory _msg,
+    //     bytes[] calldata _sigs,
+    //     address[] calldata,
+    //     uint256[] calldata
+    // ) public view {
+    //     require(verifySignatures(_msg, _sigs), "Failed to verify sigs");
+    // }
 
     /**
      * @notice Get quorum amount of tokens
@@ -497,60 +497,60 @@ contract Staking is Pauser, Whitelist {
         return (bondedTokens * 2) / 3 + 1;
     }
 
-    /**
-     * @notice Get validator info
-     * @param _valAddr the address of the validator
-     * @return Validator token amount
-     */
-    function getValidatorTokens(address _valAddr) public view returns (uint256) {
-        return validators[_valAddr].tokens;
-    }
+    // /**
+    //  * @notice Get validator info
+    //  * @param _valAddr the address of the validator
+    //  * @return Validator token amount
+    //  */
+    // function getValidatorTokens(address _valAddr) public view returns (uint256) {
+    //     return validators[_valAddr].tokens;
+    // }
 
-    /**
-     * @notice Get validator info
-     * @param _valAddr the address of the validator
-     * @return Validator status
-     */
-    function getValidatorStatus(address _valAddr) public view returns (dt.ValidatorStatus) {
-        return validators[_valAddr].status;
-    }
+    // /**
+    //  * @notice Get validator info
+    //  * @param _valAddr the address of the validator
+    //  * @return Validator status
+    //  */
+    // function getValidatorStatus(address _valAddr) public view returns (dt.ValidatorStatus) {
+    //     return validators[_valAddr].status;
+    // }
 
-    /**
-     * @notice Check the given address is a validator or not
-     * @param _addr the address to check
-     * @return the given address is a validator or not
-     */
-    function isBondedValidator(address _addr) public view returns (bool) {
-        return validators[_addr].status == dt.ValidatorStatus.Bonded;
-    }
+    // /**
+    //  * @notice Check the given address is a validator or not
+    //  * @param _addr the address to check
+    //  * @return the given address is a validator or not
+    //  */
+    // function isBondedValidator(address _addr) public view returns (bool) {
+    //     return validators[_addr].status == dt.ValidatorStatus.Bonded;
+    // }
 
-    /**
-     * @notice Get the number of validators
-     * @return the number of validators
-     */
-    function getValidatorNum() public view returns (uint256) {
-        return valAddrs.length;
-    }
+    // /**
+    //  * @notice Get the number of validators
+    //  * @return the number of validators
+    //  */
+    // function getValidatorNum() public view returns (uint256) {
+    //     return valAddrs.length;
+    // }
 
-    /**
-     * @notice Get the number of bonded validators
-     * @return the number of bonded validators
-     */
-    function getBondedValidatorNum() public view returns (uint256) {
-        return bondedValAddrs.length;
-    }
+    // /**
+    //  * @notice Get the number of bonded validators
+    //  * @return the number of bonded validators
+    //  */
+    // function getBondedValidatorNum() public view returns (uint256) {
+    //     return bondedValAddrs.length;
+    // }
 
-    /**
-     * @return addresses and token amounts of bonded validators
-     */
-    function getBondedValidatorsTokens() public view returns (dt.ValidatorTokens[] memory) {
-        dt.ValidatorTokens[] memory infos = new dt.ValidatorTokens[](bondedValAddrs.length);
-        for (uint256 i = 0; i < bondedValAddrs.length; i++) {
-            address valAddr = bondedValAddrs[i];
-            infos[i] = dt.ValidatorTokens(valAddr, validators[valAddr].tokens);
-        }
-        return infos;
-    }
+    // /**
+    //  * @return addresses and token amounts of bonded validators
+    //  */
+    // function getBondedValidatorsTokens() public view returns (dt.ValidatorTokens[] memory) {
+    //     dt.ValidatorTokens[] memory infos = new dt.ValidatorTokens[](bondedValAddrs.length);
+    //     for (uint256 i = 0; i < bondedValAddrs.length; i++) {
+    //         address valAddr = bondedValAddrs[i];
+    //         infos[i] = dt.ValidatorTokens(valAddr, validators[valAddr].tokens);
+    //     }
+    //     return infos;
+    // }
 
     /**
      * @notice Check if min token requirements are met
@@ -572,60 +572,60 @@ contract Staking is Pauser, Whitelist {
         return true;
     }
 
-    /**
-     * @notice Get the delegator info of a specific validator
-     * @param _valAddr the address of the validator
-     * @param _delAddr the address of the delegator
-     * @return DelegatorInfo from the given validator
-     */
-    function getDelegatorInfo(address _valAddr, address _delAddr) public view returns (dt.DelegatorInfo memory) {
-        dt.Validator storage validator = validators[_valAddr];
-        dt.Delegator storage d = validator.delegators[_delAddr];
-        uint256 tokens = _shareToToken(d.shares, validator.tokens, validator.shares);
+    // /**
+    //  * @notice Get the delegator info of a specific validator
+    //  * @param _valAddr the address of the validator
+    //  * @param _delAddr the address of the delegator
+    //  * @return DelegatorInfo from the given validator
+    //  */
+    // function getDelegatorInfo(address _valAddr, address _delAddr) public view returns (dt.DelegatorInfo memory) {
+    //     dt.Validator storage validator = validators[_valAddr];
+    //     dt.Delegator storage d = validator.delegators[_delAddr];
+    //     uint256 tokens = _shareToToken(d.shares, validator.tokens, validator.shares);
 
-        uint256 undelegationShares;
-        uint256 withdrawableUndelegationShares;
-        uint256 unbondingPeriod = params[dt.ParamName.UnbondingPeriod];
-        bool isUnbonded = validator.status == dt.ValidatorStatus.Unbonded;
-        uint256 len = d.undelegations.tail - d.undelegations.head;
-        dt.Undelegation[] memory undelegations = new dt.Undelegation[](len);
-        for (uint256 i = 0; i < len; i++) {
-            undelegations[i] = d.undelegations.queue[i + d.undelegations.head];
-            undelegationShares += undelegations[i].shares;
-            if (isUnbonded || undelegations[i].creationBlock + unbondingPeriod <= block.number) {
-                withdrawableUndelegationShares += undelegations[i].shares;
-            }
-        }
-        uint256 undelegationTokens = _shareToToken(
-            undelegationShares,
-            validator.undelegationTokens,
-            validator.undelegationShares
-        );
-        uint256 withdrawableUndelegationTokens = _shareToToken(
-            withdrawableUndelegationShares,
-            validator.undelegationTokens,
-            validator.undelegationShares
-        );
+    //     uint256 undelegationShares;
+    //     uint256 withdrawableUndelegationShares;
+    //     uint256 unbondingPeriod = params[dt.ParamName.UnbondingPeriod];
+    //     bool isUnbonded = validator.status == dt.ValidatorStatus.Unbonded;
+    //     uint256 len = d.undelegations.tail - d.undelegations.head;
+    //     dt.Undelegation[] memory undelegations = new dt.Undelegation[](len);
+    //     for (uint256 i = 0; i < len; i++) {
+    //         undelegations[i] = d.undelegations.queue[i + d.undelegations.head];
+    //         undelegationShares += undelegations[i].shares;
+    //         if (isUnbonded || undelegations[i].creationBlock + unbondingPeriod <= block.number) {
+    //             withdrawableUndelegationShares += undelegations[i].shares;
+    //         }
+    //     }
+    //     uint256 undelegationTokens = _shareToToken(
+    //         undelegationShares,
+    //         validator.undelegationTokens,
+    //         validator.undelegationShares
+    //     );
+    //     uint256 withdrawableUndelegationTokens = _shareToToken(
+    //         withdrawableUndelegationShares,
+    //         validator.undelegationTokens,
+    //         validator.undelegationShares
+    //     );
 
-        return
-            dt.DelegatorInfo(
-                _valAddr,
-                tokens,
-                d.shares,
-                undelegations,
-                undelegationTokens,
-                withdrawableUndelegationTokens
-            );
-    }
+    //     return
+    //         dt.DelegatorInfo(
+    //             _valAddr,
+    //             tokens,
+    //             d.shares,
+    //             undelegations,
+    //             undelegationTokens,
+    //             withdrawableUndelegationTokens
+    //         );
+    // }
 
-    /**
-     * @notice Get the value of a specific uint parameter
-     * @param _name the key of this parameter
-     * @return the value of this parameter
-     */
-    function getParamValue(dt.ParamName _name) public view returns (uint256) {
-        return params[_name];
-    }
+    // /**
+    //  * @notice Get the value of a specific uint parameter
+    //  * @param _name the key of this parameter
+    //  * @return the value of this parameter
+    //  */
+    // function getParamValue(dt.ParamName _name) public view returns (uint256) {
+    //     return params[_name];
+    // }
 
     /*********************
      * Private Functions *
