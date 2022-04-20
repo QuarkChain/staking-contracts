@@ -41,10 +41,6 @@ contract Staking is Pauser, Whitelist {
     uint256[] public currentVotingPowers;
     uint256 public epochIdx;
 
-    // Proposed validator info which should be adopted by side-chain for next epoch
-    address[] public proposedValidators;
-    uint256[] public proposedVotingPowers;
-
     /* Events */
     event ValidatorNotice(address indexed valAddr, string key, bytes data, address from);
     event ValidatorStatusUpdate(address indexed valAddr, dt.ValidatorStatus indexed status);
@@ -795,18 +791,6 @@ contract Staking is Pauser, Whitelist {
         );
     }
 
-    function getEpochValidators()
-        public
-        view
-        returns (
-            uint256,
-            address[] memory,
-            uint256[] memory
-        )
-    {
-        return (epochIdx + 1, proposedValidators, proposedVotingPowers);
-    }
-
     /**
      * Create validator set for an epoch
      * @param _epochIdx the index of epoch to propose validators
@@ -826,6 +810,18 @@ contract Staking is Pauser, Whitelist {
         epochIdx = _epochIdx;
         currentEpochIdx = _epochSigners;
         currentVotingPowers = _epochVotingPowers;
+    }
+
+    function getCurrentEpoch()
+        public
+        view
+        returns (
+            uint256,
+            address[] memory _epochSigners,
+            uint256[] memory _epochVotingPowers
+        )
+    {
+        return (epochIdx, currentEpochIdx, currentVotingPowers);
     }
 
     function proposalValidators() public view returns (address[] memory, uint256[] memory) {
