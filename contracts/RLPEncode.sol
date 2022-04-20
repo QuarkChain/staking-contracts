@@ -22,7 +22,7 @@ library RLPEncode {
         if (self.length == 1 && uint8(self[0]) <= 128) {
             encoded = self;
         } else {
-            encoded = concat(encodeLength(self.length, 128), self);
+            encoded = bytes.concat(encodeLength(self.length, 128), self);
         }
         return encoded;
     }
@@ -34,7 +34,7 @@ library RLPEncode {
      */
     function encodeList(bytes[] memory self) internal pure returns (bytes memory) {
         bytes memory list = flatten(self);
-        return concat(encodeLength(list.length, 192), list);
+        return bytes.concat(encodeLength(list.length, 192), list);
     }
 
     /**
@@ -215,54 +215,5 @@ library RLPEncode {
         }
 
         return flattened;
-    }
-
-    /**
-     * @dev Concatenates two bytes.
-     * @notice From: https://github.com/GNSPS/solidity-bytes-utils/blob/master/contracts/BytesLib.sol.
-     * @param _preBytes First byte string.
-     * @param _postBytes Second byte string.
-     * @return Both byte string combined.
-     */
-    function concat(bytes memory _preBytes, bytes memory _postBytes) private pure returns (bytes memory) {
-        bytes memory tempBytes;
-
-        assembly {
-            tempBytes := mload(0x40)
-
-            let length := mload(_preBytes)
-            mstore(tempBytes, length)
-
-            let mc := add(tempBytes, 0x20)
-            let end := add(mc, length)
-
-            for {
-                let cc := add(_preBytes, 0x20)
-            } lt(mc, end) {
-                mc := add(mc, 0x20)
-                cc := add(cc, 0x20)
-            } {
-                mstore(mc, mload(cc))
-            }
-
-            length := mload(_postBytes)
-            mstore(tempBytes, add(length, mload(tempBytes)))
-
-            mc := end
-            end := add(mc, length)
-
-            for {
-                let cc := add(_postBytes, 0x20)
-            } lt(mc, end) {
-                mc := add(mc, 0x20)
-                cc := add(cc, 0x20)
-            } {
-                mstore(mc, mload(cc))
-            }
-
-            mstore(0x40, and(add(add(end, iszero(add(length, mload(_preBytes)))), 31), not(31)))
-        }
-
-        return tempBytes;
     }
 }
