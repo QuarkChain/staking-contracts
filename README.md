@@ -9,10 +9,10 @@
 - commitBytes: Hash the Commit structure
 
 ```
- createEpochValidators(bytes memory _epochHeaderBytes, bytes memory commitBytes)
+ function createEpochValidators(bytes memory _epochHeaderBytes, bytes memory commitBytes)
 ```
 
-## 2.get validates if next epoch
+## 2.get validates of next epoch
 
 ```
 function proposalValidators() public view returns (address[] memory, uint256[] memory) 

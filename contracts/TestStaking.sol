@@ -44,7 +44,7 @@ contract TestStaking is Staking {
         )
     {}
 
-    function createEpochValidatorsTest(
+    function InitEpochValidatorsTest(
         uint256 _epochIdx,
         address[] memory _epochSigners,
         uint256[] memory _epochVotingPowers
