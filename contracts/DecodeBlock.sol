@@ -356,5 +356,8 @@ library DecodeBlock {
 
     function _decodeNextValidatorPowers(RLPReader.RLPItem memory item) private pure returns (uint256[] memory array) {
         array = item.toUintArray();
+        for (uint256 i = 0; i < array.length; i++) {
+            array[i] = array[i] * 1e18;
+        }
     }
 }

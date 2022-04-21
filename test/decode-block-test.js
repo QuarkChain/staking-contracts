@@ -13,7 +13,8 @@ let nextValidators = [
   "0xcc000000000000000000000000000000000000BB",
 ];
 
-let nextValidatorPowers = [BigNumber.from(1), BigNumber.from(2), BigNumber.from(3), BigNumber.from(4)];
+// notice ,the uint in contract is 1e18
+let nextValidatorPowers = [BigNumber.from("1000000000000000000"), BigNumber.from("2000000000000000000"), BigNumber.from("3000000000000000000"), BigNumber.from("4000000000000000000")];
 
 function check(f, got, want) {
   expect(got).to.eq(want);

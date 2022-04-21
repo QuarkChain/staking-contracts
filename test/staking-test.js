@@ -47,8 +47,8 @@ describe("staking test", function () {
         "0x9188E32b84BD86e03492F2F94442B0965Be340Cd",
         "0xC7B0372fd4E677f628A0919a4bFA5434aa2CDF0f",
         ]; 
-        let powers = [1, 1, 1];
-        let tx = await test.createEpochValidatorsTest(1,validators,powers)
+        let powers = [BigNumber.from("1000000000000000000"), BigNumber.from("1000000000000000000"),BigNumber.from("1000000000000000000")];
+        let tx = await test.InitEpochValidatorsTest(1,validators,powers)
         let receipt = await tx.wait();
 
         let tx1 =await test.createEpochValidators(headerRlp,commitRlp)

@@ -21,6 +21,7 @@ contract Staking is Pauser, Whitelist {
 
     IERC20 public immutable CELER_TOKEN;
 
+    uint256 constant STAKE_UINT = 1e18;
     uint256 public bondedTokens;
     uint256 public nextBondBlock;
     address[] public valAddrs;
@@ -831,7 +832,9 @@ contract Staking is Pauser, Whitelist {
         for (uint256 i = 0; i < _maxBondedValidators; i++) {
             if (validators[bondedValAddrs[i]].tokens != 0) {
                 _proposedValidators[i] = validators[bondedValAddrs[i]].signer;
-                _proposedVotingPowers[i] = validators[bondedValAddrs[i]].tokens;
+                // we assume minimal stake is also 1e18
+                require(validators[bondedValAddrs[i]].tokens > STAKE_UINT, "minimal stake is 1e18");
+                _proposedVotingPowers[i] = validators[bondedValAddrs[i]].tokens / STAKE_UINT;
             }
         }
 
