@@ -6,7 +6,7 @@
 - _epochHeaderBytes:  rlp encoding epoch Header
   - Note: When the Header is rlp encoded here, you need to ensure that header.Commit needs to be nil, because headerHash() does not include header.Commit
 
-- commitBytes: Hash the Commit structure
+- commitBytes: rlp encoding Commit structure
 
 ```
  function createEpochValidators(bytes memory _epochHeaderBytes, bytes memory commitBytes)
