@@ -11,6 +11,8 @@ library DecodeBlock {
     using RLPReader for bytes;
     using Strings for uint256;
 
+    uint256 constant STAKE_UINT = 1e18;
+
     struct Header {
         bytes Bloom; //[256]byte
         HashData hashData;
@@ -356,8 +358,20 @@ library DecodeBlock {
 
     function _decodeNextValidatorPowers(RLPReader.RLPItem memory item) private pure returns (uint256[] memory array) {
         array = item.toUintArray();
+        return toOnChainPowers(array);
+    }
+
+    function toOnChainPowers(uint256[] memory array) internal pure returns(uint256[] memory){
         for (uint256 i = 0; i < array.length; i++) {
-            array[i] = array[i] * 1e18;
+            array[i] = array[i] * STAKE_UINT;
         }
+        return array;
+    }
+
+    function toOffChainPowers(uint256[] memory array) internal pure returns(uint256[] memory){
+        for (uint256 i = 0; i < array.length; i++) {
+            array[i] = array[i] / STAKE_UINT;
+        }
+        return array;
     }
 }

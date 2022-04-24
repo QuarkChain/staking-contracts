@@ -21,7 +21,6 @@ contract Staking is Pauser, Whitelist {
 
     IERC20 public immutable CELER_TOKEN;
 
-    uint256 constant STAKE_UINT = 1e18;
     uint256 public bondedTokens;
     uint256 public nextBondBlock;
     address[] public valAddrs;
@@ -818,11 +817,12 @@ contract Staking is Pauser, Whitelist {
         view
         returns (
             uint256,
-            address[] memory _epochSigners,
-            uint256[] memory _epochVotingPowers
+            address[] memory ,
+            uint256[] memory 
         )
     {
-        return (epochIdx, currentEpochIdx, currentVotingPowers);
+        uint256[] memory _epochVotingPowers = DecodeBlock.toOffChainPowers(currentVotingPowers);
+        return (epochIdx, currentEpochIdx, _epochVotingPowers);
     }
 
     function proposalValidators() public view returns (address[] memory, uint256[] memory) {
@@ -833,8 +833,9 @@ contract Staking is Pauser, Whitelist {
             if (validators[bondedValAddrs[i]].tokens != 0) {
                 _proposedValidators[i] = validators[bondedValAddrs[i]].signer;
                 // we assume minimal stake is also 1e18
-                require(validators[bondedValAddrs[i]].tokens > STAKE_UINT, "minimal stake is 1e18");
-                _proposedVotingPowers[i] = validators[bondedValAddrs[i]].tokens / STAKE_UINT;
+                require(validators[bondedValAddrs[i]].tokens > DecodeBlock.STAKE_UINT, "minimal stake is 1e18");
+                // the same as calling toOffChainPowers()
+                _proposedVotingPowers[i] = validators[bondedValAddrs[i]].tokens / DecodeBlock.STAKE_UINT;
             }
         }
 
