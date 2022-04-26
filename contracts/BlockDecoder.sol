@@ -5,7 +5,7 @@ import "./RLPReader.sol";
 import "./RLPEncode.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
-library DecodeBlock {
+library BlockDecoder {
     using RLPReader for RLPReader.RLPItem;
     using RLPReader for RLPReader.Iterator;
     using RLPReader for bytes;
@@ -112,11 +112,22 @@ library DecodeBlock {
         bytes memory commitRlpBytes,
         address[] memory validators,
         uint256[] memory votePowers
-    ) internal pure returns (bool) {
+    )
+        internal
+        pure
+        returns (
+            bool,
+            uint256,
+            bytes32
+        )
+    {
         // ToDo:verify header base data
         bytes32 hash = msgHash(headerRlpBytes);
+        uint256 height = decodeHeaderHeight(headerRlpBytes);
+
         Commit memory commit = decodeCommit(commitRlpBytes.toRlpItem());
         require(commit.BlockID == hash, "incorrect BlockID");
+        require(commit.Height == height, "incorrect Height");
 
         // verify all signatures
         require(
@@ -124,7 +135,7 @@ library DecodeBlock {
             "failed to verify all signatures"
         );
 
-        return true;
+        return (true, height, hash);
     }
 
     function votingPowerNeed(uint256[] memory votePowers) internal pure returns (uint256 power) {
@@ -230,6 +241,12 @@ library DecodeBlock {
 
     function decodeToHeaderList(bytes memory headerRLPBytes) internal pure returns (RLPReader.RLPItem[] memory) {
         return headerRLPBytes.toRlpItem().toList();
+    }
+
+    function decodeHeaderHeight(bytes memory headerRLPBytes) internal pure returns (uint256 height) {
+        RLPReader.RLPItem memory header = headerRLPBytes.toRlpItem().toList()[uint8(HeaderProperty.Number)];
+        height = header.toUint();
+        return height;
     }
 
     function decodeHashData(RLPReader.RLPItem[] memory list) internal pure returns (HashData memory Hashs) {
@@ -358,17 +375,11 @@ library DecodeBlock {
 
     function _decodeNextValidatorPowers(RLPReader.RLPItem memory item) private pure returns (uint256[] memory array) {
         array = item.toUintArray();
-        return toOnChainPowers(array);
-    }
 
-    function toOnChainPowers(uint256[] memory array) internal pure returns(uint256[] memory){
-        for (uint256 i = 0; i < array.length; i++) {
-            array[i] = array[i] * STAKE_UINT;
-        }
         return array;
     }
 
-    function toOffChainPowers(uint256[] memory array) internal pure returns(uint256[] memory){
+    function toTendermintPowers(uint256[] memory array) internal pure returns (uint256[] memory) {
         for (uint256 i = 0; i < array.length; i++) {
             array[i] = array[i] / STAKE_UINT;
         }

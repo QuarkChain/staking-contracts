@@ -9,13 +9,14 @@ import {DataTypes as dt} from "./DataTypes.sol";
 // import "../interfaces/ISigsVerifier.sol";
 import "./Pauser.sol";
 import "./Whitelist.sol";
-import "./DecodeBlock.sol";
+import "./BlockDecoder.sol";
 
 /**
  * @title A Staking contract shared by all external sidechains and apps
  */
 contract Staking is Pauser, Whitelist {
-    using DecodeBlock for bytes;
+    using BlockDecoder for bytes;
+    using BlockDecoder for uint256[];
     using SafeERC20 for IERC20;
     using ECDSA for bytes32;
 
@@ -40,6 +41,9 @@ contract Staking is Pauser, Whitelist {
     address[] public currentEpochIdx;
     uint256[] public currentVotingPowers;
     uint256 public epochIdx;
+
+    uint256 curHeight;
+    mapping(uint256 => bytes32) headerHashes;
 
     /* Events */
     event ValidatorNotice(address indexed valAddr, string key, bytes data, address from);
@@ -780,10 +784,19 @@ contract Staking is Pauser, Whitelist {
      */
     function createEpochValidators(bytes memory _epochHeaderBytes, bytes memory commitBytes) public {
         //1. verify epoch header
-        require(
-            DecodeBlock.verifyHeader(_epochHeaderBytes, commitBytes, currentEpochIdx, currentVotingPowers),
-            "invalid header"
+        (bool succeed, uint256 height, bytes32 headerHash) = BlockDecoder.verifyHeader(
+            _epochHeaderBytes,
+            commitBytes,
+            currentEpochIdx,
+            currentVotingPowers
         );
+
+        require(succeed, "invalid header");
+
+        require(curHeight < height, "too small height");
+        curHeight = height;
+        headerHashes[height] = headerHash;
+
         _createEpochValidators(
             epochIdx + 1,
             _epochHeaderBytes.decodeNextValidators(),
@@ -817,12 +830,11 @@ contract Staking is Pauser, Whitelist {
         view
         returns (
             uint256,
-            address[] memory ,
-            uint256[] memory 
+            address[] memory,
+            uint256[] memory
         )
     {
-        uint256[] memory _epochVotingPowers = DecodeBlock.toOffChainPowers(currentVotingPowers);
-        return (epochIdx, currentEpochIdx, _epochVotingPowers);
+        return (epochIdx, currentEpochIdx, currentVotingPowers);
     }
 
     function proposalValidators() public view returns (address[] memory, uint256[] memory) {
@@ -833,9 +845,9 @@ contract Staking is Pauser, Whitelist {
             if (validators[bondedValAddrs[i]].tokens != 0) {
                 _proposedValidators[i] = validators[bondedValAddrs[i]].signer;
                 // we assume minimal stake is also 1e18
-                require(validators[bondedValAddrs[i]].tokens > DecodeBlock.STAKE_UINT, "minimal stake is 1e18");
-                // the same as calling toOffChainPowers()
-                _proposedVotingPowers[i] = validators[bondedValAddrs[i]].tokens / DecodeBlock.STAKE_UINT;
+                require(validators[bondedValAddrs[i]].tokens > BlockDecoder.STAKE_UINT, "minimal stake is 1e18");
+                // the same as calling toTendermintPowers()
+                _proposedVotingPowers[i] = validators[bondedValAddrs[i]].tokens / BlockDecoder.STAKE_UINT;
             }
         }
 

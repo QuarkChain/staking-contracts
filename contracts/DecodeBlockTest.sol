@@ -2,38 +2,38 @@
 
 pragma solidity ^0.8.0;
 
-import "./DecodeBlock.sol";
+import "./BlockDecoder.sol";
 
-contract DecodeBlockTest {
-    using DecodeBlock for bytes;
+contract BlockDecoderTest {
+    using BlockDecoder for bytes;
     using RLPReader for bytes;
 
-    function DecodeHeaderTest(bytes memory rlpbytes) public pure returns (DecodeBlock.Header memory) {
-        return DecodeBlock.decodeHeader(rlpbytes);
+    function DecodeHeaderTest(bytes memory rlpbytes) public pure returns (BlockDecoder.Header memory) {
+        return BlockDecoder.decodeHeader(rlpbytes);
     }
 
-    function DecodeHashDataTest(bytes memory rlpbytes) public pure returns (DecodeBlock.HashData memory) {
-        return DecodeBlock.decodeHashData(rlpbytes.decodeToHeaderList());
+    function DecodeHashDataTest(bytes memory rlpbytes) public pure returns (BlockDecoder.HashData memory) {
+        return BlockDecoder.decodeHashData(rlpbytes.decodeToHeaderList());
     }
 
-    function DecodeBaseDataTest(bytes memory rlpbytes) public pure returns (DecodeBlock.BaseData memory) {
-        return DecodeBlock.decodeBaseData(rlpbytes.decodeToHeaderList());
+    function DecodeBaseDataTest(bytes memory rlpbytes) public pure returns (BlockDecoder.BaseData memory) {
+        return BlockDecoder.decodeBaseData(rlpbytes.decodeToHeaderList());
     }
 
-    function DecodeValidatorDataTest(bytes memory rlpbytes) public pure returns (DecodeBlock.ValidatorData memory) {
-        return DecodeBlock.decodeValidatorData(rlpbytes.decodeToHeaderList());
+    function DecodeValidatorDataTest(bytes memory rlpbytes) public pure returns (BlockDecoder.ValidatorData memory) {
+        return BlockDecoder.decodeValidatorData(rlpbytes.decodeToHeaderList());
     }
 
     function DecodeNextValidatorsTest(bytes memory rlpbytes) public pure returns (address[] memory) {
-        return DecodeBlock.decodeNextValidators(rlpbytes);
+        return BlockDecoder.decodeNextValidators(rlpbytes);
     }
 
-    function DecodeCommitTest(bytes memory commitRLPbytes) public pure returns (DecodeBlock.Commit memory) {
-        return DecodeBlock.decodeCommit(commitRLPbytes.toRlpItem());
+    function DecodeCommitTest(bytes memory commitRLPbytes) public pure returns (BlockDecoder.Commit memory) {
+        return BlockDecoder.decodeCommit(commitRLPbytes.toRlpItem());
     }
 
     function RecoverSignatureTest(bytes calldata signMsg, bytes calldata sig) public pure returns (address) {
-        return DecodeBlock.recoverSignature(signMsg, sig);
+        return BlockDecoder.recoverSignature(signMsg, sig);
     }
 
     function verifySignatureTest(
@@ -41,11 +41,11 @@ contract DecodeBlockTest {
         bytes calldata signMsg,
         bytes calldata sig
     ) public pure returns (bool) {
-        return DecodeBlock.verifySignature(addr, signMsg, sig);
+        return BlockDecoder.verifySignature(addr, signMsg, sig);
     }
 
     function verifyAllSignatureTest(
-        DecodeBlock.Commit memory commit,
+        BlockDecoder.Commit memory commit,
         address[] memory validators,
         uint256[] memory votePowers,
         bool lookUpByIndex,
@@ -54,7 +54,7 @@ contract DecodeBlockTest {
         uint256 chainId
     ) public pure returns (bool) {
         return
-            DecodeBlock.verifyAllSignature(
+            BlockDecoder.verifyAllSignature(
                 commit,
                 validators,
                 votePowers,
@@ -70,27 +70,35 @@ contract DecodeBlockTest {
         bytes memory commitRlpBytes,
         address[] memory validators,
         uint256[] memory votePowers
-    ) public pure returns (bool) {
-        return DecodeBlock.verifyHeader(headerRlpBytes, commitRlpBytes, validators, votePowers);
+    )
+        public
+        pure
+        returns (
+            bool,
+            uint256,
+            bytes32
+        )
+    {
+        return BlockDecoder.verifyHeader(headerRlpBytes, commitRlpBytes, validators, votePowers);
     }
 
     function voteSignBytesTest(
-        DecodeBlock.Commit memory commit,
+        BlockDecoder.Commit memory commit,
         uint256 chainId,
         uint256 idx
     ) public pure returns (bytes memory) {
-        return DecodeBlock.voteSignBytes(commit, chainId, idx);
+        return BlockDecoder.voteSignBytes(commit, chainId, idx);
     }
 
-    function encodeToRlpBytesTest(DecodeBlock.voteForSign memory vfs) public pure returns (bytes memory) {
-        return DecodeBlock.encodeToRlpBytes(vfs);
+    function encodeToRlpBytesTest(BlockDecoder.voteForSign memory vfs) public pure returns (bytes memory) {
+        return BlockDecoder.encodeToRlpBytes(vfs);
     }
 
     function decodeRlpTest(bytes memory rlp) public pure returns (bytes[] memory) {
-        return DecodeBlock.decodeRlp(rlp);
+        return BlockDecoder.decodeRlp(rlp);
     }
 
     function HashTest(bytes memory signMsg) public pure returns (bytes32) {
-        return DecodeBlock.msgHash(signMsg);
+        return BlockDecoder.msgHash(signMsg);
     }
 }
