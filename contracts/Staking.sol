@@ -21,6 +21,7 @@ contract Staking is Pauser, Whitelist {
     using ECDSA for bytes32;
 
     IERC20 public immutable CELER_TOKEN;
+    uint256 constant STAKE_UINT = 1e18;
 
     uint256 public bondedTokens;
     uint256 public nextBondBlock;
@@ -845,9 +846,9 @@ contract Staking is Pauser, Whitelist {
             if (validators[bondedValAddrs[i]].tokens != 0) {
                 _proposedValidators[i] = validators[bondedValAddrs[i]].signer;
                 // we assume minimal stake is also 1e18
-                require(validators[bondedValAddrs[i]].tokens > BlockDecoder.STAKE_UINT, "minimal stake is 1e18");
+                require(validators[bondedValAddrs[i]].tokens > STAKE_UINT, "minimal stake is 1e18");
                 // the same as calling toTendermintPowers()
-                _proposedVotingPowers[i] = validators[bondedValAddrs[i]].tokens / BlockDecoder.STAKE_UINT;
+                _proposedVotingPowers[i] = validators[bondedValAddrs[i]].tokens / STAKE_UINT;
             }
         }
 
