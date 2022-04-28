@@ -110,15 +110,7 @@ library BlockDecoder {
         bytes memory commitRlpBytes,
         address[] memory validators,
         uint256[] memory votePowers
-    )
-        internal
-        pure
-        returns (
-            bool,
-            uint256,
-            bytes32
-        )
-    {
+    ) internal pure returns (uint256, bytes32) {
         // ToDo:verify header base data
         bytes32 hash = msgHash(headerRlpBytes);
         uint256 height = decodeHeaderHeight(headerRlpBytes);
@@ -133,7 +125,7 @@ library BlockDecoder {
             "failed to verify all signatures"
         );
 
-        return (true, height, hash);
+        return (height, hash);
     }
 
     function votingPowerNeed(uint256[] memory votePowers) internal pure returns (uint256 power) {
@@ -245,6 +237,18 @@ library BlockDecoder {
         RLPReader.RLPItem memory header = headerRLPBytes.toRlpItem().toList()[uint8(HeaderProperty.Number)];
         height = header.toUint();
         return height;
+    }
+
+    function decodeTxHash(bytes memory headerRLPBytes) internal pure returns (bytes32 hash) {
+        RLPReader.RLPItem memory header = headerRLPBytes.toRlpItem().toList()[uint8(HeaderProperty.TxHash)];
+        hash = bytes32(header.toUint());
+        return hash;
+    }
+
+    function decodeReceiptHash(bytes memory headerRLPBytes) internal pure returns (bytes32 hash) {
+        RLPReader.RLPItem memory header = headerRLPBytes.toRlpItem().toList()[uint8(HeaderProperty.ReceiptHash)];
+        hash = bytes32(header.toUint());
+        return hash;
     }
 
     function decodeHashData(RLPReader.RLPItem[] memory list) internal pure returns (HashData memory Hashs) {
@@ -376,5 +380,4 @@ library BlockDecoder {
 
         return array;
     }
-
 }

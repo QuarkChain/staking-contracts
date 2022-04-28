@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import "./BlockDecoder.sol";
+import "../lib/BlockDecoder.sol";
 
 contract BlockDecoderTest {
     using BlockDecoder for bytes;
@@ -70,15 +70,7 @@ contract BlockDecoderTest {
         bytes memory commitRlpBytes,
         address[] memory validators,
         uint256[] memory votePowers
-    )
-        public
-        pure
-        returns (
-            bool,
-            uint256,
-            bytes32
-        )
-    {
+    ) public pure returns (uint256, bytes32) {
         return BlockDecoder.verifyHeader(headerRlpBytes, commitRlpBytes, validators, votePowers);
     }
 

@@ -14,7 +14,7 @@ let nextValidators = [
 ];
 
 // notice ,the uint in contract is 1e18
-let nextValidatorPowers = [BigNumber.from("1000000000000000000"), BigNumber.from("2000000000000000000"), BigNumber.from("3000000000000000000"), BigNumber.from("4000000000000000000")];
+let nextValidatorPowers = [BigNumber.from("1"), BigNumber.from("2"), BigNumber.from("3"), BigNumber.from("4")];
 
 function check(f, got, want) {
   expect(got).to.eq(want);
@@ -29,7 +29,7 @@ function checkArray(f, got, want) {
 describe("decode block test", function () {
   let db;
   beforeEach(async () => {
-    let factory = await ethers.getContractFactory("DecodeBlockTest");
+    let factory = await ethers.getContractFactory("BlockDecoderTest");
     db = await factory.deploy();
     await db.deployed();
   });
@@ -138,19 +138,35 @@ describe("decode block test", function () {
   });
 
   it("decode commit", async function () {
-    let commitRlp = "0xf901446402a01231b92247299b5fa06ce17819c85a449086ded093407b246793abc87722b8d0f9011ef85d029433ec47f63dcda97930dfbae32c0eebfb5cd476c58398b2f1b8414c9cda1f5837598f74f0b3f92c36553c14190e9b6bea112cf720e34f6d8d8fc3585c70b1408f936655618e659f6f26c9ef3c7400c2302753699a56d83a66f03a01f85e02949188e32b84bd86e03492f2f94442b0965be340cd8401317079b841ac01bd9543e9f42aaaa81a3d506929841fc8940ae14e02628899eff5185db4d15e853eecf149d8ff258b9da28c23aa2926266164869fbea7d0c0b39ae72584b801f85d0294c7b0372fd4e677f628a0919a4bfa5434aa2cdf0f83c9adf9b8417079b71848b74ce144fe14f419117efb4b27390b97a0f201dcf5619b51132b3614b9deb47e6fd3a19587c65d9cca7de34d81259dec7063846f39c828f1ce97d601"
+    let commitRlp =
+      "0xf901446402a01231b92247299b5fa06ce17819c85a449086ded093407b246793abc87722b8d0f9011ef85d029433ec47f63dcda97930dfbae32c0eebfb5cd476c58398b2f1b8414c9cda1f5837598f74f0b3f92c36553c14190e9b6bea112cf720e34f6d8d8fc3585c70b1408f936655618e659f6f26c9ef3c7400c2302753699a56d83a66f03a01f85e02949188e32b84bd86e03492f2f94442b0965be340cd8401317079b841ac01bd9543e9f42aaaa81a3d506929841fc8940ae14e02628899eff5185db4d15e853eecf149d8ff258b9da28c23aa2926266164869fbea7d0c0b39ae72584b801f85d0294c7b0372fd4e677f628a0919a4bfa5434aa2cdf0f83c9adf9b8417079b71848b74ce144fe14f419117efb4b27390b97a0f201dcf5619b51132b3614b9deb47e6fd3a19587c65d9cca7de34d81259dec7063846f39c828f1ce97d601";
     let res = await db.DecodeCommitTest(commitRlp);
     check("Commit.Height", res.Height, BigNumber.from(100));
     check("Commit.Round", res.Round, 2);
     check("Commit.BlockID", res.BlockID, "0x1231b92247299b5fa06ce17819c85a449086ded093407b246793abc87722b8d0");
 
-    let sig0 = [2, "0x33Ec47F63Dcda97930dFbaE32c0EEBFb5cD476c5", BigNumber.from(10007281), "0x4c9cda1f5837598f74f0b3f92c36553c14190e9b6bea112cf720e34f6d8d8fc3585c70b1408f936655618e659f6f26c9ef3c7400c2302753699a56d83a66f03a01"];
+    let sig0 = [
+      2,
+      "0x33Ec47F63Dcda97930dFbaE32c0EEBFb5cD476c5",
+      BigNumber.from(10007281),
+      "0x4c9cda1f5837598f74f0b3f92c36553c14190e9b6bea112cf720e34f6d8d8fc3585c70b1408f936655618e659f6f26c9ef3c7400c2302753699a56d83a66f03a01",
+    ];
     checkArray("Commit.Signatures[0]", res.Signatures[0], sig0);
 
-    let sig1 = [2, "0x9188E32b84BD86e03492F2F94442B0965Be340Cd", BigNumber.from(20017273), "0xac01bd9543e9f42aaaa81a3d506929841fc8940ae14e02628899eff5185db4d15e853eecf149d8ff258b9da28c23aa2926266164869fbea7d0c0b39ae72584b801"];
+    let sig1 = [
+      2,
+      "0x9188E32b84BD86e03492F2F94442B0965Be340Cd",
+      BigNumber.from(20017273),
+      "0xac01bd9543e9f42aaaa81a3d506929841fc8940ae14e02628899eff5185db4d15e853eecf149d8ff258b9da28c23aa2926266164869fbea7d0c0b39ae72584b801",
+    ];
     checkArray("Commit.Signatures[1]", res.Signatures[1], sig1);
 
-    let sig2 = [2, "0xC7B0372fd4E677f628A0919a4bFA5434aa2CDF0f", BigNumber.from(13217273), "0x7079b71848b74ce144fe14f419117efb4b27390b97a0f201dcf5619b51132b3614b9deb47e6fd3a19587c65d9cca7de34d81259dec7063846f39c828f1ce97d601"];
+    let sig2 = [
+      2,
+      "0xC7B0372fd4E677f628A0919a4bFA5434aa2CDF0f",
+      BigNumber.from(13217273),
+      "0x7079b71848b74ce144fe14f419117efb4b27390b97a0f201dcf5619b51132b3614b9deb47e6fd3a19587c65d9cca7de34d81259dec7063846f39c828f1ce97d601",
+    ];
     checkArray("Commit.Signatures[2]", res.Signatures[2], sig2);
   });
 });

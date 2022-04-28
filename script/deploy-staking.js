@@ -1,5 +1,7 @@
+const { expect } = require("chai");
 const { ethers } = require("hardhat");
-
+// const {ethers} = require("ethers")
+const epochPeriod = 10000
 let main =async function(){
 
     let factory = await ethers.getContractFactory("TestStaking");
@@ -8,7 +10,7 @@ let main =async function(){
             10000,//_proposalDeposit
             10000,//_votingPeriod
             10000,//_unbondingPeriod
-            100,//_maxBondedValidators
+            4,//_maxBondedValidators
             100,//_minValidatorTokens
             10000,//_minSelfDelegation
             10000,//_advanceNoticePeriod
@@ -18,16 +20,27 @@ let main =async function(){
         await test.deployed();
 
     let validators = [
-        "0x5C935469C5592Aeeac3372e922d9bCEabDF8830d",
-        "0xf2281287ED0b4711c5249f6FE749dC792E37B4e8",
-        "0x9317D5F30ff07ff091b2cC6fA170Ca418ca14380",
+        "0xC7B6Ad1038b5a79c12B066d6E3e8972f3EceaDe7",
+        "0x90A7BfF0B4b11F365367d4C9fE084223c850B229",
+        "0x9b29aD441B195B641aA0A45ad4085c51DA62FE54",
+        "0x1B47a4d3266213354d59ECAF338A4698177819d1"
         ]; 
-    let powers = [3, 3, 3];
+    let powers = [1, 1, 1, 1];
 
-    let tx = await test.InitEpochValidatorsTest(1,validators,powers)
-    let receipt = await tx.wait();
-    console.log("deploy succeed! Receipt is:\n",receipt)
+    let tx1= await test.InitProposalVals(validators,powers)
+    let receipt1 = await tx1.wait();
 
+    let[ _vals , _powers ] = await test.proposalValidators()
+    console.log(_vals,_powers)
+
+
+    let factory2 = await ethers.getContractFactory("LightClient");
+    let lc = await factory2.deploy(epochPeriod, staking.address);
+    await lc.deployed();
+
+    let tx = await lc.initEpoch(validators, powers, 0, "0x864e3e31173c40a384f8b0fd15b80accd229be020d6ae97fcf4036106aee77b1");
+    let [currentEpochIdx, currentVals, currentPowers] = await lc.getCurrentEpoch();
+    console.log(currentEpochIdx,currentVals,currentPowers)
 }
 
 main().catch((error) => {

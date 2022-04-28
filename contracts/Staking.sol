@@ -5,18 +5,15 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import {DataTypes as dt} from "./DataTypes.sol";
+import {DataTypes as dt} from "./lib/DataTypes.sol";
 // import "../interfaces/ISigsVerifier.sol";
 import "./Pauser.sol";
 import "./Whitelist.sol";
-import "./BlockDecoder.sol";
 
 /**
  * @title A Staking contract shared by all external sidechains and apps
  */
 contract Staking is Pauser, Whitelist {
-    using BlockDecoder for bytes;
-    using BlockDecoder for uint256[];
     using SafeERC20 for IERC20;
     using ECDSA for bytes32;
 
@@ -36,15 +33,6 @@ contract Staking is Pauser, Whitelist {
     address public rewardContract;
     uint256 public forfeiture;
     uint256 public epoch; // number of blocks per epoch
-
-    // Current validator info from side-chain's epoch header
-    // Use to verify commit if the side-chain does not change validators.
-    address[] public currentEpochIdx;
-    uint256[] public currentVotingPowers;
-    uint256 public epochIdx;
-
-    uint256 curHeight;
-    mapping(uint256 => bytes32) headerHashes;
 
     /* Events */
     event ValidatorNotice(address indexed valAddr, string key, bytes data, address from);
@@ -780,64 +768,6 @@ contract Staking is Pauser, Whitelist {
         return (shares * totalTokens) / totalShares;
     }
 
-    /**
-     * Create validator set for an epoch
-     */
-    function createEpochValidators(bytes memory _epochHeaderBytes, bytes memory commitBytes) public {
-        //1. verify epoch header
-        (bool succeed, uint256 height, bytes32 headerHash) = BlockDecoder.verifyHeader(
-            _epochHeaderBytes,
-            commitBytes,
-            currentEpochIdx,
-            currentVotingPowers
-        );
-
-        require(succeed, "invalid header");
-
-        require(curHeight < height, "too small height");
-        curHeight = height;
-        headerHashes[height] = headerHash;
-
-        _createEpochValidators(
-            epochIdx + 1,
-            _epochHeaderBytes.decodeNextValidators(),
-            _epochHeaderBytes.decodeNextValidatorPowers()
-        );
-    }
-
-    /**
-     * Create validator set for an epoch
-     * @param _epochIdx the index of epoch to propose validators
-     */
-    function _createEpochValidators(
-        uint256 _epochIdx,
-        address[] memory _epochSigners,
-        uint256[] memory _epochVotingPowers
-    ) internal {
-        require(_epochIdx > epochIdx, "epoch too old");
-
-        // Check if the epoch validators are from proposed.
-        // This means that the 2/3+ validators have accepted the proposed validators from the contract.
-        require(_epochSigners.length == _epochVotingPowers.length, "incorrect length");
-
-        // TODO: add rewards to validators
-        epochIdx = _epochIdx;
-        currentEpochIdx = _epochSigners;
-        currentVotingPowers = _epochVotingPowers;
-    }
-
-    function getCurrentEpoch()
-        public
-        view
-        returns (
-            uint256,
-            address[] memory,
-            uint256[] memory
-        )
-    {
-        return (epochIdx, currentEpochIdx, currentVotingPowers);
-    }
-
     function proposalValidators() public view returns (address[] memory, uint256[] memory) {
         uint256 _maxBondedValidators = params[dt.ParamName.MaxBondedValidators];
         address[] memory _proposedValidators = new address[](_maxBondedValidators);
@@ -845,9 +775,7 @@ contract Staking is Pauser, Whitelist {
         for (uint256 i = 0; i < _maxBondedValidators; i++) {
             if (validators[bondedValAddrs[i]].tokens != 0) {
                 _proposedValidators[i] = validators[bondedValAddrs[i]].signer;
-                // we assume minimal stake is also 1e18
-                require(validators[bondedValAddrs[i]].tokens > STAKE_UINT, "minimal stake is 1e18");
-                // the same as calling toTendermintPowers()
+                // we assume minimal stake is also bigger than 1e18
                 _proposedVotingPowers[i] = validators[bondedValAddrs[i]].tokens / STAKE_UINT;
             }
         }

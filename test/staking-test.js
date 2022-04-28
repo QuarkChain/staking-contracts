@@ -3,12 +3,12 @@ const { ethers } = require("hardhat");
 const { BigNumber } = require("ethers");
 
 function check(f, got, want) {
-  expect(got).to.eq(want);
+  expect(got).to.eq(want, f);
 }
 
 function checkArray(f, got, want) {
   got.forEach((v, i) => {
-    expect(v).to.eq(want[i]);
+    expect(v).to.eq(want[i], f);
   });
 }
 
@@ -26,7 +26,7 @@ class Header {
     this.ReceiptHash = "0x3300000000000000000000000000000000000000000000000000000000000033";
     this.Bloom = "0x1234";
     this.Difficulty = "0x1100";
-    this.Number = "0x1001";
+    this.Number = "0x2710"; //10000
     this.GasLimit = "0x900008";
     this.GasUsed = "0x8000918271";
     this.Time = "0x98765372";
@@ -78,68 +78,30 @@ function voteSignBytes(commit, chainId, Idx) {
 describe("staking test", function () {
   let test;
   let db;
+  let staking;
   beforeEach(async () => {
     let factory = await ethers.getContractFactory("TestStaking");
-    test = await factory.deploy(
+    staking = await factory.deploy(
       "0x8072113C11cE4F583Ac1104934386a171f5f7c3A",
       10000,
       10000,
       10000,
-      30,
+      100, //number of validator with state of 'bonded'
       100,
       10,
       1000,
       10000,
       1000
     );
-    await test.deployed();
+    await staking.deployed();
 
-    let factory1 = await ethers.getContractFactory("DecodeBlockTest");
+    let factory1 = await ethers.getContractFactory("BlockDecoderTest");
     db = await factory1.deploy();
     await db.deployed();
-  });
 
-  it("createEpochValidators Test", async function () {
-    let headerRlp =
-      "0xf90304a0112233445566778899001122334455667788990011223344556677889900aabba0000033445566778899001122334455667788990011223344556677889900aabb94d76fb45ed105f1851d74233f884d256c4fdad634a01100000000000000000000000000000000000000000000000000000000000011a02200000000000000000000000000000000000000000000000000000000000022a03300000000000000000000000000000000000000000000000000000000000033b9010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000822af88227118703328b9554a1b68501dce452ff8405e30a3cb8950301010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010102a04400000000000000000000000000000000000000000000000000000000000044880102030405060708820309830c9f1bf83f94aa000000000000000000000000000000000000aa94bb000000000000000000000000000000000000bb94cc000000000000000000000000000000000000ccc3030303a0cc000000000000000000000000000000000000000000000000000000000000cc";
-
-    let commitRlp =
-      "0xf901446402a01231b92247299b5fa06ce17819c85a449086ded093407b246793abc87722b8d0f9011ef85d029433ec47f63dcda97930dfbae32c0eebfb5cd476c58398b2f1b8414c9cda1f5837598f74f0b3f92c36553c14190e9b6bea112cf720e34f6d8d8fc3585c70b1408f936655618e659f6f26c9ef3c7400c2302753699a56d83a66f03a01f85e02949188e32b84bd86e03492f2f94442b0965be340cd8401317079b841ac01bd9543e9f42aaaa81a3d506929841fc8940ae14e02628899eff5185db4d15e853eecf149d8ff258b9da28c23aa2926266164869fbea7d0c0b39ae72584b801f85d0294c7b0372fd4e677f628a0919a4bfa5434aa2cdf0f83c9adf9b8417079b71848b74ce144fe14f419117efb4b27390b97a0f201dcf5619b51132b3614b9deb47e6fd3a19587c65d9cca7de34d81259dec7063846f39c828f1ce97d601";
-    let validators = [
-      "0x33Ec47F63Dcda97930dFbaE32c0EEBFb5cD476c5",
-      "0x9188E32b84BD86e03492F2F94442B0965Be340Cd",
-      "0xC7B0372fd4E677f628A0919a4bFA5434aa2CDF0f",
-    ];
-    let powers = [
-      BigNumber.from("1000000000000000000"),
-      BigNumber.from("1000000000000000000"),
-      BigNumber.from("1000000000000000000"),
-    ];
-    let tx = await test.InitEpochValidatorsTest(1, validators, powers);
-    let receipt = await tx.wait();
-
-    let tx1 = await test.createEpochValidators(headerRlp, commitRlp);
-    let receipt1 = await tx1.wait();
-    // console.log(receipt1)
-
-    let header = await db.DecodeHeaderTest(headerRlp);
-    // console.log(header)
-    let len = header.validatorData.NextValidators.length;
-
-    let commit = await db.DecodeCommitTest(commitRlp);
-    // console.log(commit)
-
-    let vals = [];
-    let votePowers = [];
-    for (let i = 0; i < len; i++) {
-      vals.push(await test.currentEpochIdx(i));
-      votePowers.push(await test.currentVotingPowers(i));
-    }
-    let epochIdx = await test.epochIdx();
-
-    check("check epochIdx", epochIdx, 2);
-    checkArray("check current validators", vals, header.validatorData.NextValidators);
-    checkArray("check current votePowers", votePowers, header.validatorData.NextValidatorPowers);
+    let factory2 = await ethers.getContractFactory("LightClient");
+    test = await factory2.deploy(10000, staking.address);
+    await test.deployed();
   });
 
   it("verify headder hash signature", async function () {
@@ -204,7 +166,8 @@ describe("staking test", function () {
       }
 
       let commitBytes = rlpdata(Object.values(commit));
-      let tx = await test.InitEpochValidatorsTest(1, vals, initpowers);
+      const _height = 0;
+      let tx = await test.initEpoch(vals, initpowers, _height, hash);
 
       let [currentEpochIdx, currentVals, currentPowers] = await test.getCurrentEpoch();
       let j = 0;
@@ -213,7 +176,7 @@ describe("staking test", function () {
         j++;
       }
 
-      let tx1 = await test.createEpochValidators(rlpheaderBytes, commitBytes);
+      let tx1 = await test.submitHead(rlpheaderBytes, commitBytes);
       let receipt1 = await tx1.wait();
       console.log("valNum:", valNum, " GasUsed:", receipt1.gasUsed);
     } catch (error) {
