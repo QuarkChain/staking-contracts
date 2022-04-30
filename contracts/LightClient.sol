@@ -3,8 +3,9 @@ pragma solidity ^0.8.0;
 import "./lib/BlockDecoder.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IStaking.sol";
+import "./interfaces/ILightClient.sol";
 
-contract LightClient is Ownable {
+contract LightClient is ILightClient, Ownable {
     using BlockDecoder for bytes;
     using BlockDecoder for uint256[];
 
@@ -12,11 +13,10 @@ contract LightClient is Ownable {
     // Use to verify commit if the side-chain does not change validators.
     address[] public curEpochVals;
     uint256[] public curVotingPowers;
-    uint256 public epochIdx;
+    uint256 public override epochIdx;
 
-    uint256 public curEpochHeight;
-    uint256 public epochPeriod;
-    mapping(uint256 => bytes32) public headHashes;
+    uint256 public override curEpochHeight;
+    uint256 public override epochPeriod;
 
     IStaking public staking;
 
@@ -29,46 +29,26 @@ contract LightClient is Ownable {
         address[] memory _epochSigners,
         uint256[] memory _epochVotingPowers,
         uint256 height,
-        bytes32 headHash
-    ) external onlyOwner {
-        _createEpochValidators(1, _epochSigners, _epochVotingPowers);
+        bytes32
+    ) public virtual override onlyOwner {
         curEpochHeight = height;
-        headHashes[height] = headHash;
-    }
-
-    function verifyHeader(bytes memory _epochHeaderBytes, bytes memory commitBytes)
-        external
-        view
-        returns (uint256, bytes32)
-    {
-        //1. verify epoch header
-        (uint256 height, bytes32 headerHash) = BlockDecoder.verifyHeader(
-            _epochHeaderBytes,
-            commitBytes,
-            curEpochVals,
-            curVotingPowers
-        );
-
-        return (height, headerHash);
+        _createEpochValidators(1, _epochSigners, _epochVotingPowers);
     }
 
     /**
      * Create validator set for an epoch
      */
-    function submitHead(bytes memory _epochHeaderBytes, bytes memory commitBytes) public {
+    function submitHead(
+        uint256,
+        bytes memory _epochHeaderBytes,
+        bytes memory commitBytes
+    ) public virtual override {
         //1. verify epoch header
-        (uint256 height, bytes32 headerHash) = BlockDecoder.verifyHeader(
-            _epochHeaderBytes,
-            commitBytes,
-            curEpochVals,
-            curVotingPowers
-        );
+        (uint256 height, , ) = BlockDecoder.verifyHeader(_epochHeaderBytes, commitBytes, curEpochVals, curVotingPowers);
 
         require(curEpochHeight + epochPeriod == height, "incorrect height");
         curEpochHeight = height;
-        headHashes[height] = headerHash;
 
-        // todo : if decodeNextValidators() is nil , unvalid
         address[] memory vals = _epochHeaderBytes.decodeNextValidators();
         uint256[] memory powers = _epochHeaderBytes.decodeNextValidatorPowers();
         require(
@@ -103,6 +83,7 @@ contract LightClient is Ownable {
     function getCurrentEpoch()
         public
         view
+        override
         returns (
             uint256,
             address[] memory,
@@ -112,15 +93,19 @@ contract LightClient is Ownable {
         return (epochIdx, curEpochVals, curVotingPowers);
     }
 
-    function setEpochPeriod(uint256 _epochPeriod) external onlyOwner {
+    function setEpochPeriod(uint256 _epochPeriod) external override onlyOwner {
         epochPeriod = _epochPeriod;
     }
 
-    function getNextEpochHeight() external view returns (uint256 height) {
+    function getNextEpochHeight() external view override returns (uint256 height) {
         return curEpochHeight + epochPeriod;
     }
 
-    function proposalValidators() external view returns (address[] memory, uint256[] memory) {
+    function getStaking() external view override returns (address) {
+        return address(staking);
+    }
+
+    function proposalValidators() external view override returns (address[] memory, uint256[] memory) {
         return staking.proposalValidators();
     }
 }

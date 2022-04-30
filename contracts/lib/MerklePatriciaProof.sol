@@ -85,6 +85,8 @@ library MerklePatriciaProof {
                 return false;
             }
         }
+
+        return false;
     }
 
     function _nibblesToTraverse(

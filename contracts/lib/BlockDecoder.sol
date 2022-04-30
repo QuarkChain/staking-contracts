@@ -11,6 +11,13 @@ library BlockDecoder {
     using RLPReader for bytes;
     using Strings for uint256;
 
+    struct HeadCore {
+        // bytes32 HeadHash;
+        bytes32 Root;
+        bytes32 TxHash;
+        bytes32 ReceiptHash;
+    }
+
     struct Header {
         bytes Bloom; //[256]byte
         HashData hashData;
@@ -110,10 +117,18 @@ library BlockDecoder {
         bytes memory commitRlpBytes,
         address[] memory validators,
         uint256[] memory votePowers
-    ) internal pure returns (uint256, bytes32) {
+    )
+        internal
+        pure
+        returns (
+            uint256,
+            bytes32,
+            HeadCore memory
+        )
+    {
         // ToDo:verify header base data
         bytes32 hash = msgHash(headerRlpBytes);
-        uint256 height = decodeHeaderHeight(headerRlpBytes);
+        (uint256 height, HeadCore memory core) = decodeHeadCore(headerRlpBytes);
 
         Commit memory commit = decodeCommit(commitRlpBytes.toRlpItem());
         require(commit.BlockID == hash, "incorrect BlockID");
@@ -125,7 +140,7 @@ library BlockDecoder {
             "failed to verify all signatures"
         );
 
-        return (height, hash);
+        return (height, hash, core);
     }
 
     function votingPowerNeed(uint256[] memory votePowers) internal pure returns (uint256 power) {
@@ -234,9 +249,19 @@ library BlockDecoder {
     }
 
     function decodeHeaderHeight(bytes memory headerRLPBytes) internal pure returns (uint256 height) {
-        RLPReader.RLPItem memory header = headerRLPBytes.toRlpItem().toList()[uint8(HeaderProperty.Number)];
+        RLPReader.RLPItem memory header = decodeToHeaderList(headerRLPBytes)[uint8(HeaderProperty.Number)];
         height = header.toUint();
         return height;
+    }
+
+    function decodeHeadCore(bytes memory headerRLPBytes) internal pure returns (uint256 height, HeadCore memory core) {
+        RLPReader.RLPItem[] memory list = decodeToHeaderList(headerRLPBytes);
+        height = list[uint8(HeaderProperty.Number)].toUint();
+        core.Root = bytes32(list[uint8(HeaderProperty.Root)].toUint());
+        core.TxHash = bytes32(list[uint8(HeaderProperty.TxHash)].toUint());
+        core.ReceiptHash = bytes32(list[uint8(HeaderProperty.ReceiptHash)].toUint());
+
+        return (height, core);
     }
 
     function decodeTxHash(bytes memory headerRLPBytes) internal pure returns (bytes32 hash) {

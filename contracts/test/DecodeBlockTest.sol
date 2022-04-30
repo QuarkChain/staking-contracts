@@ -70,7 +70,15 @@ contract BlockDecoderTest {
         bytes memory commitRlpBytes,
         address[] memory validators,
         uint256[] memory votePowers
-    ) public pure returns (uint256, bytes32) {
+    )
+        public
+        pure
+        returns (
+            uint256,
+            bytes32,
+            BlockDecoder.HeadCore memory
+        )
+    {
         return BlockDecoder.verifyHeader(headerRlpBytes, commitRlpBytes, validators, votePowers);
     }
 

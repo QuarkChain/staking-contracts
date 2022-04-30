@@ -39,6 +39,24 @@ class Header {
     this.NextValidatorPowers = powers;
     this.LastCommitHash = "0x7700000000000000000000000000000000000000000000000000000000000011";
   }
+
+  setBlockHeight(height){
+    this.Number = BigNumber.from(height).toHexString();
+  }
+
+  genHeadRlp(head){
+    return rlpdata(Object.values(head))
+  }
+
+  genHeadhash(head){
+    return dataHash(rlpdata(Object.values(head)))
+  }
+
+  setNextVals(vals,powers){
+    this.NextValidators = vals
+    this.NextValidatorPowers = powers;
+  }
+
 }
 
 function rlpdata(data) {
@@ -50,11 +68,20 @@ function dataHash(rlpBytes) {
 }
 
 class Commit {
-  constructor(height, round, blockId, sigs) {
+  constructor(height, round, blockId, vals) {
     this.height = height;
     this.round = round;
     this.blockId = blockId;
-    this.signatures = sigs;
+    let allsigs = [];
+    for (let k = 0; k < vals.length; k++) {
+        let _sig = ["0x02", vals[k], "0x1234"];
+        allsigs.push(_sig);
+      }
+    this.signatures = allsigs;
+  }
+
+  genCommitRlp(commit){
+    return rlpdata(Object.values(commit))
   }
 }
 class Vote {
@@ -99,12 +126,16 @@ describe("staking test", function () {
     db = await factory1.deploy();
     await db.deployed();
 
-    let factory2 = await ethers.getContractFactory("LightClient");
+    let factory2 = await ethers.getContractFactory("W3qProver");
     test = await factory2.deploy(10000, staking.address);
     await test.deployed();
   });
 
-  it("verify headder hash signature", async function () {
+  it("test submit head",async function(){
+
+  })
+
+  it("verify header hash signature", async function () {
     const wallet = await ethers.Wallet.createRandom();
     vals = ["0x33Ec47F63Dcda97930dFbaE32c0EEBFb5cD476c5"];
     powers = ["0x01"];
@@ -127,42 +158,31 @@ describe("staking test", function () {
     check("Verify Signature", valid, true);
   });
 
-  it("test with large number of validators", async function () {
+  it("submit epoch head with large number of validators", async function () {
     try {
       const wallets = [];
       const vals = [];
       const powers = [];
       const initpowers = [];
-      let valNum = 100;
+      let valNum = 10;
       for (let i = 0; i < valNum; i++) {
         const wallet = await ethers.Wallet.createRandom();
         wallets.push(wallet);
         vals.push(wallet.address);
-        powers.push("0x0a"); //10
-        initpowers.push("0x8ac7230489e80000"); //10 * 10^18
+        powers.push("0x01"); //10
+        initpowers.push("0x01"); //10 * 10^18
       }
 
       newHeader = new Header(vals, powers);
-      let h1 = Object.values(newHeader);
+      let rlpheaderBytes = newHeader.genHeadRlp(newHeader);
+      let hash = newHeader.genHeadhash(newHeader);
 
-      let rlpheaderBytes = rlpdata(h1);
-      let hash = dataHash(rlpheaderBytes);
-      let gethash = await db.HashTest(rlpheaderBytes);
-      check("Hash", gethash, hash);
-
-      let sigs = [];
-      for (let k = 0; k < valNum; k++) {
-        let _sig = ["0x02", vals[k], "0x1234"];
-        sigs.push(_sig);
-      }
-      let commit = new Commit(newHeader.Number, "0x02", hash, sigs);
+      let commit = new Commit(newHeader.Number, "0x02", hash, vals);
 
       for (let k = 0; k < valNum; k++) {
         let dataToSign = voteSignBytes(commit, CHAIN_ID, k);
         let dataSignature = await generateSignature(dataToSign, wallets[k]);
         commit.signatures[k].push(dataSignature);
-        let valid = await db.verifySignatureTest(wallets[k].address, dataToSign, dataSignature);
-        check("Verify Signature", valid, true);
       }
 
       let commitBytes = rlpdata(Object.values(commit));
@@ -171,14 +191,39 @@ describe("staking test", function () {
 
       let [currentEpochIdx, currentVals, currentPowers] = await test.getCurrentEpoch();
       let j = 0;
+
+
       for (const val of currentVals) {
-        check("Index Validator", val, sigs[j][1]);
+        check("Index Validator", val, commit.signatures[j][1]);
         j++;
       }
 
-      let tx1 = await test.submitHead(rlpheaderBytes, commitBytes);
+      let tx1 = await test.submitHead(10000,rlpheaderBytes, commitBytes);
       let receipt1 = await tx1.wait();
       console.log("valNum:", valNum, " GasUsed:", receipt1.gasUsed);
+      expect(await test.latestBlockHeight()).to.be.eq(newHeader.Number)
+      expect(await test.headHashes(newHeader.Number)).to.be.eq(hash)
+      expect(await test.getStateRoot(newHeader.Number)).to.be.eq(newHeader.Root)
+
+      newHeader.setBlockHeight(10001);
+      newHeader.setNextVals([],[])
+      let headrlp = newHeader.genHeadRlp(newHeader);
+      let headhash = newHeader.genHeadhash(newHeader);
+
+      let commit1 = new Commit(newHeader.Number, "0x02", headhash, vals);
+      for (let k = 0; k < valNum; k++) {
+        let dataToSign = voteSignBytes(commit1, CHAIN_ID, k);
+        let dataSignature = await generateSignature(dataToSign, wallets[k]);
+        commit1.signatures[k].push(dataSignature);
+      }
+
+      let comRlp = commit1.genCommitRlp(commit1)
+      let tx2 = await test.submitHead(10001,headrlp,comRlp)
+      expect(await test.latestBlockHeight()).to.be.eq(newHeader.Number)
+      expect(await test.headHashes(newHeader.Number)).to.be.eq(headhash)
+      expect(await test.getStateRoot(newHeader.Number)).to.be.eq(newHeader.Root)
+
+    
     } catch (error) {
       throw error;
     }
