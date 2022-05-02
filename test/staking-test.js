@@ -126,7 +126,7 @@ describe("staking test", function () {
     db = await factory1.deploy();
     await db.deployed();
 
-    let factory2 = await ethers.getContractFactory("W3qProver");
+    let factory2 = await ethers.getContractFactory("LightClient");
     test = await factory2.deploy(10000, staking.address);
     await test.deployed();
   });
@@ -201,28 +201,9 @@ describe("staking test", function () {
       let tx1 = await test.submitHead(10000,rlpheaderBytes, commitBytes);
       let receipt1 = await tx1.wait();
       console.log("valNum:", valNum, " GasUsed:", receipt1.gasUsed);
-      expect(await test.latestBlockHeight()).to.be.eq(newHeader.Number)
-      expect(await test.headHashes(newHeader.Number)).to.be.eq(hash)
-      expect(await test.getStateRoot(newHeader.Number)).to.be.eq(newHeader.Root)
 
-      newHeader.setBlockHeight(10001);
-      newHeader.setNextVals([],[])
-      let headrlp = newHeader.genHeadRlp(newHeader);
-      let headhash = newHeader.genHeadhash(newHeader);
-
-      let commit1 = new Commit(newHeader.Number, "0x02", headhash, vals);
-      for (let k = 0; k < valNum; k++) {
-        let dataToSign = voteSignBytes(commit1, CHAIN_ID, k);
-        let dataSignature = await generateSignature(dataToSign, wallets[k]);
-        commit1.signatures[k].push(dataSignature);
-      }
-
-      let comRlp = commit1.genCommitRlp(commit1)
-      let tx2 = await test.submitHead(10001,headrlp,comRlp)
-      expect(await test.latestBlockHeight()).to.be.eq(newHeader.Number)
-      expect(await test.headHashes(newHeader.Number)).to.be.eq(headhash)
-      expect(await test.getStateRoot(newHeader.Number)).to.be.eq(newHeader.Root)
-
+      [currentEpochIdx, currentVals, currentPowers] = await test.getCurrentEpoch();
+      check("epochId",currentEpochIdx,2)
     
     } catch (error) {
       throw error;
