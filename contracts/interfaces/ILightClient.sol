@@ -36,5 +36,5 @@ interface ILightClient {
 
     function getStaking() external view returns (address);
 
-    function proposalValidators() external view returns (address[] memory, uint256[] memory);
+    function proposedValidators() external view returns (address[] memory, uint256[] memory);
 }

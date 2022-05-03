@@ -28,10 +28,10 @@ contract LightClient is ILightClient, Ownable {
     function initEpoch(
         address[] memory _epochSigners,
         uint256[] memory _epochVotingPowers,
-        uint256 height,
+        uint256 _height,
         bytes32
     ) public virtual override onlyOwner {
-        curEpochHeight = height;
+        curEpochHeight = _height;
         _createEpochValidators(1, _epochSigners, _epochVotingPowers);
     }
 
@@ -105,7 +105,7 @@ contract LightClient is ILightClient, Ownable {
         return address(staking);
     }
 
-    function proposalValidators() external view override returns (address[] memory, uint256[] memory) {
-        return staking.proposalValidators();
+    function proposedValidators() external view override returns (address[] memory, uint256[] memory) {
+        return staking.proposedValidators();
     }
 }
