@@ -383,100 +383,100 @@ contract Staking is Pauser, Whitelist {
     //     emit Slash(valAddr, request.nonce, slashAmt);
     // }
 
-    // function collectForfeiture() external {
-    //     require(forfeiture > 0, "Nothing to collect");
-    //     CELER_TOKEN.safeTransfer(rewardContract, forfeiture);
-    //     forfeiture = 0;
-    // }
+    function collectForfeiture() external {
+        require(forfeiture > 0, "Nothing to collect");
+        CELER_TOKEN.safeTransfer(rewardContract, forfeiture);
+        forfeiture = 0;
+    }
 
-    // /**
-    //  * @notice Validator notice event, could be triggered by anyone
-    //  */
-    // function validatorNotice(
-    //     address _valAddr,
-    //     string calldata _key,
-    //     bytes calldata _data
-    // ) external {
-    //     dt.Validator storage validator = validators[_valAddr];
-    //     require(validator.status != dt.ValidatorStatus.Null, "Validator is not initialized");
-    //     emit ValidatorNotice(_valAddr, _key, _data, msg.sender);
-    // }
+    /**
+     * @notice Validator notice event, could be triggered by anyone
+     */
+    function validatorNotice(
+        address _valAddr,
+        string calldata _key,
+        bytes calldata _data
+    ) external {
+        dt.Validator storage validator = validators[_valAddr];
+        require(validator.status != dt.ValidatorStatus.Null, "Validator is not initialized");
+        emit ValidatorNotice(_valAddr, _key, _data, msg.sender);
+    }
 
-    // function setParamValue(dt.ParamName _name, uint256 _value) external {
-    //     require(msg.sender == govContract, "Caller is not gov contract");
-    //     if (_name == dt.ParamName.MaxBondedValidators) {
-    //         require(bondedValAddrs.length <= _value, "invalid value");
-    //     }
-    //     params[_name] = _value;
-    // }
+    function setParamValue(dt.ParamName _name, uint256 _value) external {
+        require(msg.sender == govContract, "Caller is not gov contract");
+        if (_name == dt.ParamName.MaxBondedValidators) {
+            require(bondedValAddrs.length <= _value, "invalid value");
+        }
+        params[_name] = _value;
+    }
 
-    // function setGovContract(address _addr) external onlyOwner {
-    //     govContract = _addr;
-    // }
+    function setGovContract(address _addr) external onlyOwner {
+        govContract = _addr;
+    }
 
-    // function setRewardContract(address _addr) external onlyOwner {
-    //     rewardContract = _addr;
-    // }
+    function setRewardContract(address _addr) external onlyOwner {
+        rewardContract = _addr;
+    }
 
-    // /**
-    //  * @notice Set max slash factor
-    //  */
-    // function setMaxSlashFactor(uint256 _maxSlashFactor) external onlyOwner {
-    //     params[dt.ParamName.MaxSlashFactor] = _maxSlashFactor;
-    // }
+    /**
+     * @notice Set max slash factor
+     */
+    function setMaxSlashFactor(uint256 _maxSlashFactor) external onlyOwner {
+        params[dt.ParamName.MaxSlashFactor] = _maxSlashFactor;
+    }
 
-    // /**
-    //  * @notice Owner drains tokens when the contract is paused
-    //  * @dev emergency use only
-    //  * @param _amount drained token amount
-    //  */
-    // function drainToken(uint256 _amount) external whenPaused onlyOwner {
-    //     CELER_TOKEN.safeTransfer(msg.sender, _amount);
-    // }
+    /**
+     * @notice Owner drains tokens when the contract is paused
+     * @dev emergency use only
+     * @param _amount drained token amount
+     */
+    function drainToken(uint256 _amount) external whenPaused onlyOwner {
+        CELER_TOKEN.safeTransfer(msg.sender, _amount);
+    }
 
-    // /**************************
-    //  *  Public View Functions *
-    //  **************************/
+    /**************************
+     *  Public View Functions *
+     **************************/
 
-    // /**
-    //  * @notice Validate if a message is signed by quorum tokens
-    //  * @param _msg signed message
-    //  * @param _sigs list of validator signatures
-    //  */
-    // function verifySignatures(bytes memory _msg, bytes[] memory _sigs) public view returns (bool) {
-    //     bytes32 hash = keccak256(_msg).toEthSignedMessageHash();
-    //     uint256 signedTokens;
-    //     address prev = address(0);
-    //     uint256 quorum = getQuorumTokens();
-    //     for (uint256 i = 0; i < _sigs.length; i++) {
-    //         address signer = hash.recover(_sigs[i]);
-    //         require(signer > prev, "Signers not in ascending order");
-    //         prev = signer;
-    //         dt.Validator storage validator = validators[signerVals[signer]];
-    //         if (validator.status != dt.ValidatorStatus.Bonded) {
-    //             continue;
-    //         }
-    //         signedTokens += validator.tokens;
-    //         if (signedTokens >= quorum) {
-    //             return true;
-    //         }
-    //     }
-    //     revert("Quorum not reached");
-    // }
+    /**
+     * @notice Validate if a message is signed by quorum tokens
+     * @param _msg signed message
+     * @param _sigs list of validator signatures
+     */
+    function verifySignatures(bytes memory _msg, bytes[] memory _sigs) public view returns (bool) {
+        bytes32 hash = keccak256(_msg).toEthSignedMessageHash();
+        uint256 signedTokens;
+        address prev = address(0);
+        uint256 quorum = getQuorumTokens();
+        for (uint256 i = 0; i < _sigs.length; i++) {
+            address signer = hash.recover(_sigs[i]);
+            require(signer > prev, "Signers not in ascending order");
+            prev = signer;
+            dt.Validator storage validator = validators[signerVals[signer]];
+            if (validator.status != dt.ValidatorStatus.Bonded) {
+                continue;
+            }
+            signedTokens += validator.tokens;
+            if (signedTokens >= quorum) {
+                return true;
+            }
+        }
+        revert("Quorum not reached");
+    }
 
-    // /**
-    //  * @notice Verifies that a message is signed by a quorum among the validators.
-    //  * @param _msg signed message
-    //  * @param _sigs the list of signatures
-    //  */
-    // function verifySigs(
-    //     bytes memory _msg,
-    //     bytes[] calldata _sigs,
-    //     address[] calldata,
-    //     uint256[] calldata
-    // ) public view {
-    //     require(verifySignatures(_msg, _sigs), "Failed to verify sigs");
-    // }
+    /**
+     * @notice Verifies that a message is signed by a quorum among the validators.
+     * @param _msg signed message
+     * @param _sigs the list of signatures
+     */
+    function verifySigs(
+        bytes memory _msg,
+        bytes[] calldata _sigs,
+        address[] calldata,
+        uint256[] calldata
+    ) public view {
+        require(verifySignatures(_msg, _sigs), "Failed to verify sigs");
+    }
 
     /**
      * @notice Get quorum amount of tokens
