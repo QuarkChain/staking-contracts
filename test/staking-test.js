@@ -165,7 +165,7 @@ describe("light client test", function () {
   });
 
   it("submit epoch head with large number of validators", async function () {
-    try {
+  
       const wallets = [];
       const vals = [];
       const powers = [];
@@ -192,7 +192,7 @@ describe("light client test", function () {
 
       let prev_epoch_wallets = wallets;
       let epochHeight2 = BigNumber.from(10000);
-      for (let epochIdx = 2; epochIdx < 100; epochIdx++) {
+      for (let epochIdx = 2; epochIdx < 10; epochIdx++) {
         let wallets2 = [];
         let vals2 = [];
         let powers2 = [];
@@ -213,7 +213,7 @@ describe("light client test", function () {
         await signVotes(prev_epoch_wallets, commit2);
         let commitBytes2 = commit2.genCommitRlp();
 
-        let tx2 = await test.submitHead(epochHeight2.toHexString(), rlpHeader2, commitBytes2);
+        let tx2 = await test.submitHead(rlpHeader2, commitBytes2);
         let receipt2 = await tx2.wait();
         console.log("EPOCHID:", epochIdx, " VALNUM:", valNum, " GasUsed:", receipt2.gasUsed.toString());
 
@@ -225,8 +225,6 @@ describe("light client test", function () {
         prev_epoch_wallets = wallets2;
         epochHeight2 = epochHeight2.add(10000);
       }
-    } catch (error) {
-      throw error;
-    }
+
   });
 });
