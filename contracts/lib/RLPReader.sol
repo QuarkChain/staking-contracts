@@ -259,13 +259,13 @@ library RLPReader {
         }
     }
 
-    function toUint64Array(RLPItem memory item) internal pure returns (uint64[] memory array) {
+    function toUintArray(RLPItem memory item) internal pure returns (uint256[] memory array) {
         require(isList(item), "item should be List");
 
         RLPItem[] memory list = toList(item);
-        array = new uint64[](list.length);
+        array = new uint256[](list.length);
         for (uint256 i = 0; i < list.length; i++) {
-            array[i] = uint64(toUint(list[i]));
+            array[i] = toUint(list[i]);
         }
     }
 

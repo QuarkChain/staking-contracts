@@ -2,7 +2,8 @@
 
 pragma solidity ^0.8.0;
 
-import "./Staking.sol";
+import "../Staking.sol";
+import "../LightClient.sol";
 
 contract TestStaking is Staking {
     /**
@@ -44,11 +45,12 @@ contract TestStaking is Staking {
         )
     {}
 
-    function createEpochValidatorsTest(
-        uint256 _epochIdx,
-        address[] memory _epochSigners,
-        uint256[] memory _epochVotingPowers
-    ) public {
-        _createEpochValidators(_epochIdx, _epochSigners, _epochVotingPowers);
+    function initProposalVals(address[] memory _epochSigners, uint256[] memory _epochVotingPowers) public {
+        uint256 _maxBondedValidators = params[dt.ParamName.MaxBondedValidators];
+        bondedValAddrs = _epochSigners;
+        for (uint256 i = 0; i < _maxBondedValidators; i++) {
+            validators[bondedValAddrs[i]].signer = _epochSigners[i];
+            validators[bondedValAddrs[i]].tokens = _epochVotingPowers[i] * STAKE_UINT;
+        }
     }
 }
