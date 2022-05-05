@@ -7,6 +7,7 @@
     "@nomiclabs/hardhat-ethers": "^2.0.2",
     "@nomiclabs/hardhat-etherscan": "^2.1.6",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
+    "@nomiclabs/hardhat-web3": "^2.0.0",
     "@openzeppelin/contracts": "^4.5.0",
     "chai": "^4.3.4",
     "dotenv": "^10.0.0",
@@ -19,14 +20,24 @@
     "prettier-check": "^2.0.0",
     "prettier-plugin-solidity": "^1.0.0-beta.18",
     "rlp": "^2.2.7",
+    "safe-buffer": "^5.1.2",
     "solhint-plugin-prettier": "^0.0.5",
     "solidity-coverage": "^0.7.17",
-    "solidity-rlp": "^2.0.5"
+    "solidity-rlp": "^2.0.5",
+    "web3": "^1.7.3"
   },
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
     "prettier:check": "prettier-check contracts/**/*.sol",
     "prettier:fix": "prettier --write contracts/**/*.sol test/**/*.js scripts/**/*.js"
+  },
+  "dependencies": {
+    "@ethereumjs/tx": "^3.5.1",
+    "ethereumjs-block": "^2.2.2",
+    "ethereumjs-tx": "^2.1.2",
+    "ethereumjs-util": "^7.1.4",
+    "level": "^8.0.0",
+    "merkle-patricia-tree": "^4.2.4"
   }
 }

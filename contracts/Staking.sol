@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import {DataTypes as dt} from "./DataTypes.sol";
+import {DataTypes as dt} from "./lib/DataTypes.sol";
 // import "../interfaces/ISigsVerifier.sol";
 import "./Pauser.sol";
 import "./Whitelist.sol";
@@ -18,6 +18,7 @@ contract Staking is Pauser, Whitelist {
     using ECDSA for bytes32;
 
     IERC20 public immutable CELER_TOKEN;
+    uint256 constant STAKE_UINT = 1e18;
 
     uint256 public bondedTokens;
     uint256 public nextBondBlock;
@@ -32,16 +33,6 @@ contract Staking is Pauser, Whitelist {
     address public rewardContract;
     uint256 public forfeiture;
     uint256 public epoch; // number of blocks per epoch
-
-    // Current validator info from side-chain's epoch header
-    // Use to verify commit if the side-chain does not change validators.
-    address[] public currentEpochIdx;
-    uint256[] public currentVotingPowers;
-    uint256 public epochIdx;
-
-    // Proposed validator info which should be adopted by side-chain for next epoch
-    address[] public proposedValidators;
-    uint256[] public proposedVotingPowers;
 
     /* Events */
     event ValidatorNotice(address indexed valAddr, string key, bytes data, address from);
@@ -805,60 +796,18 @@ contract Staking is Pauser, Whitelist {
         return (shares * totalTokens) / totalShares;
     }
 
-    /**
-     * Create validator set for an epoch
-     */
-    function createEpochValidators(bytes memory _epochHeaderBytes) public {
-        // TODO:
-        // epochHeader contains
-        // - commit from epoch (epochIdx - 1)'s validators
-        // - new validators for epoch epochIdx
-        // Verify commit using current validators
-        // call _createEpochValidators()
-    }
-
-    function getEpochValidators()
-        public
-        view
-        returns (
-            uint256,
-            address[] memory,
-            uint256[] memory
-        )
-    {
-        return (epochIdx + 1, proposedValidators, proposedVotingPowers);
-    }
-
-    /**
-     * Create validator set for an epoch
-     * @param _epochIdx the index of epoch to propose validators
-     */
-    function _createEpochValidators(
-        uint256 _epochIdx,
-        address[] memory _epochSigners,
-        uint256[] memory _epochVotingPowers
-    ) internal {
-        require(_epochIdx > epochIdx, "epoch too old");
-
-        // Check if the epoch validators are from proposed.
-        // This means that the 2/3+ validators have accepted the proposed validators from the contract.
-        require(_epochSigners.length == _epochVotingPowers.length, "incorrect length");
-
-        // TODO: add rewards to validators
-        epochIdx = _epochIdx;
-        currentEpochIdx = _epochSigners;
-        currentVotingPowers = _epochVotingPowers;
-
+    function proposedValidators() public view returns (address[] memory, uint256[] memory) {
         uint256 _maxBondedValidators = params[dt.ParamName.MaxBondedValidators];
         address[] memory _proposedValidators = new address[](_maxBondedValidators);
         uint256[] memory _proposedVotingPowers = new uint256[](_maxBondedValidators);
         for (uint256 i = 0; i < _maxBondedValidators; i++) {
             if (validators[bondedValAddrs[i]].tokens != 0) {
                 _proposedValidators[i] = validators[bondedValAddrs[i]].signer;
-                _proposedVotingPowers[i] = validators[bondedValAddrs[i]].tokens;
+                // we assume minimal stake is also bigger than 1e18
+                _proposedVotingPowers[i] = validators[bondedValAddrs[i]].tokens / STAKE_UINT;
             }
         }
-        proposedValidators = _proposedValidators;
-        proposedVotingPowers = _proposedVotingPowers;
+
+        return (_proposedValidators, _proposedVotingPowers);
     }
 }
