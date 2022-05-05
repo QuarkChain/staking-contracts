@@ -198,7 +198,7 @@ describe("staking test", function () {
         j++;
       }
 
-      let tx1 = await test.submitHead(10000,rlpheaderBytes, commitBytes);
+      let tx1 = await test.submitHead(rlpheaderBytes, commitBytes);
       let receipt1 = await tx1.wait();
       console.log("valNum:", valNum, " GasUsed:", receipt1.gasUsed);
 
