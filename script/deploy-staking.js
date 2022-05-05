@@ -4,7 +4,7 @@ const { ethers } = require("hardhat");
 const epochPeriod = 10000
 let main =async function(){
 
-    let factory = await ethers.getContractFactory("LightClient");
+    let factory = await ethers.getContractFactory("TestStaking");
     let staking = await factory.deploy(
             "0x8072113C11cE4F583Ac1104934386a171f5f7c3A",
             10000,//_proposalDeposit
