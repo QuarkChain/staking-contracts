@@ -11,10 +11,10 @@ contract LightClient is ILightClient, Ownable {
 
     // Current validator info from side-chain's epoch header
     // Use to verify commit if the side-chain does not change validators.
-    address[] public curEpochVals;
-    uint256[] public curVotingPowers;
-    uint256 public override epochIdx;
+    uint8 public constant TOTAL_EPOCH = 4;
+    Epoch[TOTAL_EPOCH] epochs;
 
+    uint256 public override curEpochIdx;
     uint256 public override curEpochHeight;
     uint256 public override epochPeriod;
 
@@ -25,14 +25,17 @@ contract LightClient is ILightClient, Ownable {
         staking = IStaking(_staking);
     }
 
+    function _epochPosition(uint256 _epochIdx) internal pure returns (uint256) {
+        return _epochIdx % TOTAL_EPOCH;
+    }
+
     function initEpoch(
         address[] memory _epochSigners,
         uint256[] memory _epochVotingPowers,
-        uint256 height,
+        uint256 _height,
         bytes32
     ) public virtual override onlyOwner {
-        curEpochHeight = height;
-        _createEpochValidators(1, _epochSigners, _epochVotingPowers);
+        _createEpochValidators(1, _height, _epochSigners, _epochVotingPowers);
     }
 
     /**
@@ -44,10 +47,13 @@ contract LightClient is ILightClient, Ownable {
         bytes memory commitBytes
     ) public virtual override {
         //1. verify epoch header
-        (uint256 height, , ) = BlockDecoder.verifyHeader(_epochHeaderBytes, commitBytes, curEpochVals, curVotingPowers);
-
-        require(curEpochHeight + epochPeriod == height, "incorrect height");
-        curEpochHeight = height;
+        uint256 position = _epochPosition(curEpochIdx);
+        (uint256 height, , ) = BlockDecoder.verifyHeader(
+            _epochHeaderBytes,
+            commitBytes,
+            epochs[position].curEpochVals,
+            epochs[position].curVotingPowers
+        );
 
         address[] memory vals = _epochHeaderBytes.decodeNextValidators();
         uint256[] memory powers = _epochHeaderBytes.decodeNextValidatorPowers();
@@ -56,7 +62,8 @@ contract LightClient is ILightClient, Ownable {
             "both NextValidators and NextValidatorPowers should not be empty"
         );
 
-        _createEpochValidators(epochIdx + 1, vals, powers);
+        require(curEpochHeight + epochPeriod == height, "incorrect height");
+        _createEpochValidators(curEpochIdx + 1, height, vals, powers);
     }
 
     /**
@@ -65,19 +72,23 @@ contract LightClient is ILightClient, Ownable {
      */
     function _createEpochValidators(
         uint256 _epochIdx,
+        uint256 _epochHeight,
         address[] memory _epochSigners,
         uint256[] memory _epochVotingPowers
     ) internal {
-        require(_epochIdx > epochIdx, "epoch too old");
+        require(_epochIdx > curEpochIdx, "epoch too old");
 
         // Check if the epoch validators are from proposed.
         // This means that the 2/3+ validators have accepted the proposed validators from the contract.
         require(_epochSigners.length == _epochVotingPowers.length, "incorrect length");
 
+        uint256 position = _epochPosition(_epochIdx);
+        curEpochIdx = _epochIdx;
+        curEpochHeight = _epochHeight;
+        epochs[position].curEpochVals = _epochSigners;
+        epochs[position].curVotingPowers = _epochVotingPowers;
+
         // TODO: add rewards to validators
-        epochIdx = _epochIdx;
-        curEpochVals = _epochSigners;
-        curVotingPowers = _epochVotingPowers;
     }
 
     function getCurrentEpoch()
@@ -90,7 +101,8 @@ contract LightClient is ILightClient, Ownable {
             uint256[] memory
         )
     {
-        return (epochIdx, curEpochVals, curVotingPowers);
+        uint256 position = _epochPosition(curEpochIdx);
+        return (curEpochIdx, epochs[position].curEpochVals, epochs[position].curVotingPowers);
     }
 
     function setEpochPeriod(uint256 _epochPeriod) external override onlyOwner {
@@ -105,7 +117,60 @@ contract LightClient is ILightClient, Ownable {
         return address(staking);
     }
 
-    function proposalValidators() external view override returns (address[] memory, uint256[] memory) {
-        return staking.proposalValidators();
+    function proposedValidators() external view override returns (address[] memory, uint256[] memory) {
+        return staking.proposedValidators();
+    }
+
+    function getEpochIdx(uint256 height) public view override returns (uint256) {
+        uint256 _epochPeriod = epochPeriod;
+        uint256 _tmp = curEpochHeight + _epochPeriod;
+        require(height <= _tmp, "height too high");
+        uint256 _distance = (_tmp - height) / _epochPeriod;
+        require(_distance < TOTAL_EPOCH, "out of height range");
+        return curEpochIdx - _distance;
+    }
+
+    function checkHeightRange(uint256 height) public view override returns (bool) {
+        (uint256 min, uint256 max) = heightRange();
+        if (height >= min && height <= max) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    function minEpochIdx() public view override returns (uint256) {
+        if (curEpochIdx >= TOTAL_EPOCH) {
+            return curEpochIdx - TOTAL_EPOCH + 1;
+        }
+        return 0;
+    }
+
+    function heightRange() public view override returns (uint256 min, uint256 max) {
+        min = _minHeight();
+        max = _maxHeight();
+        // when the curEpochHeight is 10000 and TOTAL_EPOCH = 2,
+        // the range of the block ,can be verified by contract, is [1,20000]
+
+        return (min, max);
+    }
+
+    function _minHeight() internal view returns (uint256) {
+        uint256 _curEpochHeight = curEpochHeight;
+        uint256 _epochPeriod = epochPeriod;
+
+        uint256 _range = (TOTAL_EPOCH - 1) * _epochPeriod;
+        uint256 minHeight = 0;
+        if (_curEpochHeight >= _range) {
+            minHeight = _curEpochHeight - _range + 1;
+        }
+        return minHeight;
+    }
+
+    function _maxHeight() internal view returns (uint256) {
+        uint256 _curEpochHeight = curEpochHeight;
+        uint256 _epochPeriod = epochPeriod;
+
+        return _curEpochHeight + _epochPeriod;
     }
 }

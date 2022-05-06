@@ -12,7 +12,7 @@ interface IW3qProver {
     /* Prover */
     function submitHead(
         uint256 height,
-        bytes memory _epochHeaderBytes,
+        bytes memory epochHeaderBytes,
         bytes memory commitBytes
     ) external;
 

@@ -22,37 +22,34 @@ contract W3qProver is LightClient, IW3qProver {
         uint256 height,
         bytes32 headHash
     ) public override(LightClient) onlyOwner {
-        curEpochHeight = height;
-        _createEpochValidators(1, _epochSigners, _epochVotingPowers);
+        _createEpochValidators(1, height, _epochSigners, _epochVotingPowers);
         latestBlockHeight = height;
         headHashes[height] = headHash;
     }
 
     function submitHead(
-        uint256 _height,
+        uint256 height,
         bytes memory headBytes,
         bytes memory commitBytes
     ) public override(IW3qProver, LightClient) {
-        // 0.judge block if exist
-        require(!blockExist(_height), "block exist");
+        require(!blockExist(height), "block exist");
+
+        uint256 _epochIdx = getEpochIdx(height);
+        uint256 _position = _epochPosition(_epochIdx);
 
         //  verify and decode header
-        (uint256 height, bytes32 headHash, BlockDecoder.HeadCore memory core) = BlockDecoder.verifyHeader(
+        (uint256 decodeHeight, bytes32 headHash, BlockDecoder.HeadCore memory core) = BlockDecoder.verifyHeader(
             headBytes,
             commitBytes,
-            curEpochVals,
-            curVotingPowers
+            epochs[_position].curEpochVals,
+            epochs[_position].curVotingPowers
         );
 
+        require(decodeHeight == height, "inconsistent height");
+
         //  the valid range of block height
-        uint256 epochStart = curEpochHeight + 1;
-        uint256 epochEnd = curEpochHeight + epochPeriod;
 
-        require(_height == height, "incorrect height");
-
-        if (height == epochEnd) {
-            curEpochHeight = height;
-
+        if (height == curEpochHeight + epochPeriod) {
             address[] memory vals = headBytes.decodeNextValidators();
             uint256[] memory powers = headBytes.decodeNextValidatorPowers();
             require(
@@ -60,10 +57,7 @@ contract W3qProver is LightClient, IW3qProver {
                 "both NextValidators and NextValidatorPowers should not be empty"
             );
 
-            _createEpochValidators(epochIdx + 1, vals, powers);
-        } else {
-            // height should not equal to epochEnd,because the block of epochEnd will be submit through calling 'submitEpochHead()'
-            require(epochStart <= height && height < epochEnd, "invalid block height");
+            _createEpochValidators(curEpochIdx + 1, height, vals, powers);
         }
 
         headHashes[height] = headHash;
@@ -81,22 +75,6 @@ contract W3qProver is LightClient, IW3qProver {
     function proveReceipt(uint256 height, IW3qProver.Proof memory proof) external view override returns (bool) {
         bytes32 recRoot = getReceiptRoot(height);
         return MerklePatriciaProof.verify(proof.rlpValue, proof.rlpParentNodes, proof.encodePath, recRoot);
-    }
-
-    function getTxRootAndHeaderHash(bytes memory headerRlp) public pure returns (bytes32 txRoot, bytes32 headerHash) {
-        txRoot = BlockDecoder.decodeTxHash(headerRlp);
-        headerHash = BlockDecoder.msgHash(headerRlp);
-        return (txRoot, headerHash);
-    }
-
-    function getReceiptRootAndHeadHash(bytes memory headerRlp)
-        public
-        pure
-        returns (bytes32 receiptRoot, bytes32 headerHash)
-    {
-        receiptRoot = BlockDecoder.decodeReceiptHash(headerRlp);
-        headerHash = BlockDecoder.msgHash(headerRlp);
-        return (receiptRoot, headerHash);
     }
 
     function getStateRoot(uint256 height) public view override returns (bytes32) {

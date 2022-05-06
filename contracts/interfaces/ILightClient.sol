@@ -1,9 +1,14 @@
 pragma solidity ^0.8.0;
 
 interface ILightClient {
+    struct Epoch {
+        address[] curEpochVals;
+        uint256[] curVotingPowers;
+    }
+
     function initEpoch(
-        address[] memory _epochSigners,
-        uint256[] memory _epochVotingPowers,
+        address[] memory epochSigners,
+        uint256[] memory epochVotingPowers,
         uint256 height,
         bytes32 headHash
     ) external;
@@ -24,7 +29,7 @@ interface ILightClient {
             uint256[] memory
         );
 
-    function epochIdx() external view returns (uint256);
+    function curEpochIdx() external view returns (uint256);
 
     function curEpochHeight() external view returns (uint256 height);
 
@@ -36,5 +41,13 @@ interface ILightClient {
 
     function getStaking() external view returns (address);
 
-    function proposalValidators() external view returns (address[] memory, uint256[] memory);
+    function proposedValidators() external view returns (address[] memory, uint256[] memory);
+
+    function getEpochIdx(uint256 height) external view returns (uint256);
+
+    function checkHeightRange(uint256 height) external view returns (bool);
+
+    function minEpochIdx() external view returns (uint256);
+
+    function heightRange() external view returns (uint256 min, uint256 max);
 }

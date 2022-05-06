@@ -217,10 +217,10 @@ describe("verify header test", function () {
     check("header height", commit.Height, res.baseData.Number);
 
     try {
-      let [succeed, height, hash] = await db.verifyHeaderTest(headerRlp, commitRlp, validators, powers);
-      check("Verify Header", succeed, true);
+      let [height, hash] = await db.verifyHeaderTest(headerRlp, commitRlp, validators, powers);
+      check("Verify Header", height, commit.Height);
     } catch (error) {
-      console.log(error);
+      throw error;
     }
   });
 });
