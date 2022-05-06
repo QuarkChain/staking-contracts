@@ -15,7 +15,7 @@
 ## 2.get validators and powers of next epoch
 
 ```
-function proposalValidators() public view returns (address[] memory, uint256[] memory) 
+function proposedValidators() public view returns (address[] memory, uint256[] memory) 
 ```
 return
 - validators of next epoch
