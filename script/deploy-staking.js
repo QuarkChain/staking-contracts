@@ -5,7 +5,7 @@ const epochPeriod = 10000
 let main =async function(){
 
     let factory = await ethers.getContractFactory("TestStaking");
-    let test = await factory.deploy(
+    let staking = await factory.deploy(
             "0x8072113C11cE4F583Ac1104934386a171f5f7c3A",
             10000,//_proposalDeposit
             10000,//_votingPeriod
@@ -17,7 +17,7 @@ let main =async function(){
             10000,//_validatorBondInterval
             10000//_maxSlashFactor
         );
-        await test.deployed();
+        await staking.deployed();
 
     let validators = [
         "0xC7B6Ad1038b5a79c12B066d6E3e8972f3EceaDe7",
@@ -27,20 +27,24 @@ let main =async function(){
         ]; 
     let powers = [1, 1, 1, 1];
 
-    let tx1= await test.InitProposalVals(validators,powers)
+    let tx1= await staking.initProposalVals(validators,powers)
     let receipt1 = await tx1.wait();
 
-    let[ _vals , _powers ] = await test.proposalValidators()
+    let[ _vals , _powers ] = await staking.proposalValidators()
     console.log(_vals,_powers)
 
 
     let factory2 = await ethers.getContractFactory("LightClient");
     let lc = await factory2.deploy(epochPeriod, staking.address);
     await lc.deployed();
+    console.log("LC:",lc.address)
 
     let tx = await lc.initEpoch(validators, powers, 0, "0x864e3e31173c40a384f8b0fd15b80accd229be020d6ae97fcf4036106aee77b1");
+    await tx.wait()
     let [currentEpochIdx, currentVals, currentPowers] = await lc.getCurrentEpoch();
     console.log(currentEpochIdx,currentVals,currentPowers)
+
+    
 }
 
 main().catch((error) => {
