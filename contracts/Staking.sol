@@ -797,10 +797,10 @@ contract Staking is Pauser, Whitelist {
     }
 
     function proposedValidators() public view returns (address[] memory, uint256[] memory) {
-        uint256 _maxBondedValidators = params[dt.ParamName.MaxBondedValidators];
-        address[] memory _proposedValidators = new address[](_maxBondedValidators);
-        uint256[] memory _proposedVotingPowers = new uint256[](_maxBondedValidators);
-        for (uint256 i = 0; i < _maxBondedValidators; i++) {
+        // uint256 _maxBondedValidators = params[dt.ParamName.MaxBondedValidators];
+        address[] memory _proposedValidators = new address[](bondedValAddrs.length);
+        uint256[] memory _proposedVotingPowers = new uint256[](bondedValAddrs.length);
+        for (uint256 i = 0; i < bondedValAddrs.length; i++) {
             if (validators[bondedValAddrs[i]].tokens != 0) {
                 _proposedValidators[i] = validators[bondedValAddrs[i]].signer;
                 // we assume minimal stake is also bigger than 1e18
