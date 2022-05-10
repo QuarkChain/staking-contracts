@@ -14,6 +14,7 @@ interface ILightClient {
     ) external;
 
     function submitHead(
+        uint256,
         bytes memory _epochHeaderBytes,
         bytes memory commitBytes
     ) external;
