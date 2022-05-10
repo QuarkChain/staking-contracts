@@ -42,7 +42,6 @@ contract LightClient is ILightClient, Ownable {
      * Create validator set for an epoch
      */
     function submitHead(
-        uint256,
         bytes memory _epochHeaderBytes,
         bytes memory commitBytes
     ) public virtual override {

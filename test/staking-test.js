@@ -223,7 +223,7 @@ describe("light client test", function () {
     db = await factory1.deploy();
     await db.deployed();
 
-    let factory2 = await ethers.getContractFactory("W3qProver");
+    let factory2 = await ethers.getContractFactory("LightClient");
     test = await factory2.deploy(10000, staking.address);
     await test.deployed();
   });

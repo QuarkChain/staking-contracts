@@ -768,7 +768,7 @@ contract Staking is Pauser, Whitelist {
         return (shares * totalTokens) / totalShares;
     }
 
-    function proposalValidators() public view returns (address[] memory, uint256[] memory) {
+    function proposedValidators() public view returns (address[] memory, uint256[] memory) {
         uint256 _maxBondedValidators = params[dt.ParamName.MaxBondedValidators];
         address[] memory _proposedValidators = new address[](_maxBondedValidators);
         uint256[] memory _proposedVotingPowers = new uint256[](_maxBondedValidators);
