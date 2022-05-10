@@ -1,8 +1,10 @@
 const fs = require("fs");
 const { BigNumber } = require("ethers");
 const { ethers } = require("hardhat");
+const fetch = require('node-fetch');
 
-const epochPeriod = 100;
+const epochPeriod = 50;
+const unbondingPeriod = 10;
 
 const sideChainProvider = ethers.getDefaultProvider('https://galileo.web3q.io:8545');
 
@@ -130,7 +132,7 @@ async function deployContracts() {
     erc20Addr,   //_TokenAddress,
     10000,           //_proposalDeposit,
     epochPeriod,     //_votingPeriod,
-    10,              //_unbondingPeriod,
+    unbondingPeriod,              //_unbondingPeriod,
     30,              //_maxBondedValidators,
     BigNumber.from(100).mul(ethers.constants.WeiPerEther),             //_minValidatorTokens,
     BigNumber.from(10).mul(ethers.constants.WeiPerEther),              //_minSelfDelegation,
@@ -179,8 +181,6 @@ async function initLightClient() {
 
     let tx = await light.initEpoch(vals, powers, curHeight, headerHash);
     await tx.wait();
-    let [currentEpochIdx, currentVals, currentPowers] = await light.getCurrentEpoch();
-    console.log(currentEpochIdx, currentVals, currentPowers)
 
   } catch (error) {
     throw error;
@@ -190,34 +190,35 @@ async function initLightClient() {
 
 async function toNextEpoch() {
   let light = await getLightClient();
-  let [[epoch], next, curHeight] = await Promise.all([light.getCurrentEpoch(), light.getNextEpochHeight(), sideChainProvider.getBlockNumber()]);
-  console.log("current Epoch", epoch, "NextEpochHeight", next, "current height", curHeight);
-  if (next > curHeight + epochPeriod) {
+  let [[epoch, curSigners,], next, curHeight] = await Promise.all([light.getCurrentEpoch(), light.getNextEpochHeight(), sideChainProvider.getBlockNumber()]);
+  console.log("current Epoch=" + epoch, "NextEpochHeight=" + next, "current height=" + curHeight);
+  if (next > curHeight) {
     console.log("too early to submit head")
     return
   }
+  console.log("curSigners=", curSigners);
   let [vals, powers] = await light.proposedValidators();
+  console.log("proposedValidators: ", "vals", vals)
   powers = powers.map(p => p.toHexString())
   let newHeader = new Header(vals, powers);
   newHeader.setBlockHeight(next);
   let rlpheaderBytes = newHeader.genHeadRlp(newHeader);
   let headerHash = newHeader.genHeadhash(newHeader);
-  let commit = new Commit(newHeader.Number, "0x02", headerHash, vals);
+  let commit = new Commit(newHeader.Number, "0x02", headerHash, curSigners);
 
-  for (let k = 0; k < vals.length; k++) {
-    const wallet = getSignerByAddr(vals[k]);
+  for (let k = 0; k < curSigners.length; k++) {
+    const wallet = getSignerByAddr(curSigners[k]);
     let dataToSign = voteSignBytes(commit, CHAIN_ID, k);
     let dataSignature = await generateSignature(dataToSign, wallet);
     commit.signatures[k].push(dataSignature);
   }
-
   let commitBytes = rlpdata(Object.values(commit));
   let tx1 = await light.submitHead(rlpheaderBytes, commitBytes);
   let receipt1 = await tx1.wait();
   console.log("submitHead done", receipt1.status);
 
-  [currentEpochIdx, ,] = await light.getCurrentEpoch();
-  console.log("current Epoch", currentEpochIdx)
+  [currentEpochIdx, vals,] = await light.getCurrentEpoch();
+  console.log("current Epoch", currentEpochIdx, "vals", vals)
 
 }
 async function mineBlocks(n) {
@@ -226,25 +227,95 @@ async function mineBlocks(n) {
   }
 }
 
+async function register(initValidatorCount) {
+  let tx;
+  let rt;
+  const path = "scripts/png-64/";
+  const files = fs.readdirSync(path);
+  const keys = require("./keys.json");
+  const validators = keys.slice(0, initValidatorCount);
+  const signers = keys.slice(initValidatorCount, initValidatorCount * 2);
+  let stakingAddr = require("./contract-address-" + hre.network.name + ".json").staking;
+  let stakingContract = await hre.ethers.getContractFactory("Staking");
+  const staking = await stakingContract.attach(stakingAddr);
+  const tokenAddr = await staking.CELER_TOKEN();
+  const tokenContract = await hre.ethers.getContractFactory("ERC20Mock");
+  const token = await tokenContract.attach(tokenAddr);
+  for (let i = 0; i < initValidatorCount; i++) {
+    let { privateKey, address } = validators[i];
+    console.log(`validator ${i}: ${address}`);
+    const name = "validator" + i;
+    const avatar = "data:image/png;base64," + fs.readFileSync(path + files[i], { encoding: 'base64' });
+    const profile = {
+      name,
+      url: "http://" + name + ".com",
+      avatar,
+    };
+    const _validatorBondInterval = 5; // FIXME
+    try {
+      const res = await upload(address, profile);
+      console.log("uploaded", res);
+
+      const wallet = new ethers.Wallet(privateKey).connect(ethers.provider);
+      tx = await token.connect(wallet).approve(stakingAddr, ethers.constants.MaxUint256, { gasLimit: 50000 });
+      rt = await tx.wait();
+      console.log(`approve ${address}: ${rt.status}`)
+      const amount = ethers.utils.parseEther("10" + i);
+      const commissionRate = "10" + i;
+      tx = await staking.connect(wallet).initializeValidator(signers[i].address, amount, commissionRate, { gasLimit: 400000 });
+      rt = await tx.wait();
+      console.log(`signer ${signers[i].address}: ${rt.status}`)
+      tx = await staking.connect(wallet).bondValidator({ gasLimit: 140000 });
+      rt = await tx.wait();
+      console.log(`bond ${signers[i].address}: ${rt.status}`)
+      if (hre.network.name === 'localhost') {
+        await new Promise(r => setTimeout(r, _validatorBondInterval * 2 * 1000));
+      }
+      if (hre.network.name === 'rinkeby') {
+        await new Promise(r => setTimeout(r, _validatorBondInterval * 4 * 1000));
+      }
+    } catch (e) {
+      console.error(e);
+      break;
+    }
+  }
+}
+
+async function upload(address, profile) {
+  const url = "http://35.89.131.53:3000/" + address.toLocaleLowerCase();
+  const requestOptions = {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(profile),
+  };
+  const response = await fetch(url, requestOptions);
+  return response.json();
+}
+
 async function main() {
   console.log("network:", hre.network.name)
   // step 1 deploy
   // await deployContracts();
 
   // step 2 PoS register and bond
-  // ...
+  // await register(3);
 
   // step 3 init Epoch
   // await initLightClient();
 
-  // after 1 epoch
-  // await mineBlocks(epochPeriod)
-
   // step 4 move submit header
 
-  setInterval(async () => {
-    await toNextEpoch()
-  }, 60000);
+  // await toNextEpoch()
+  // setInterval(async () => {
+  //   await toNextEpoch()
+  // }, 10000);
+  
+  while (true) {
+    await new Promise(r => setTimeout(r, 2000));
+    await ethers.provider.send('evm_mine');
+    console.log("block", await ethers.provider.getBlockNumber())
+  }
+
 }
 
 
