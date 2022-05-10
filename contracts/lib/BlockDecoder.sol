@@ -116,7 +116,8 @@ library BlockDecoder {
         bytes memory headerRlpBytes,
         bytes memory commitRlpBytes,
         address[] memory validators,
-        uint256[] memory votePowers
+        uint256[] memory votePowers,
+        bool lookUpByIndex
     )
         internal
         pure
@@ -136,7 +137,7 @@ library BlockDecoder {
 
         // verify all signatures
         require(
-            verifyAllSignature(commit, validators, votePowers, true, false, votingPowerNeed(votePowers), 3334),
+            verifyAllSignature(commit, validators, votePowers, lookUpByIndex, false, votingPowerNeed(votePowers), 3334),
             "failed to verify all signatures"
         );
 
@@ -169,7 +170,7 @@ library BlockDecoder {
                 require(vaddr == validators[i], "validator no exist");
                 idx = i;
             } else {
-                assert(false);
+                idx = _validatorIndex(vaddr, validators);
             }
 
             bytes memory signMsg = voteSignBytes(commit, chainId, i);
@@ -188,6 +189,18 @@ library BlockDecoder {
             return false;
         }
         return true;
+    }
+
+    function _validatorIndex(address val, address[] memory vals) internal pure returns (uint256 index) {
+        bool exist;
+        for (index = 0; index < vals.length; index++) {
+            if (val == vals[index]) {
+                exist = true;
+                break;
+            }
+        }
+        require(exist, "validator no exist");
+        return index;
     }
 
     function verifySignature(

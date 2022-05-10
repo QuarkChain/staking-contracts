@@ -7,9 +7,10 @@
   - Note: When the Header is rlp encoded here, you need to ensure that header.Commit needs to be nil, because headerHash() does not include header.Commit
 
 - commitBytes: rlp encoding Commit structure
+- lookByIndex: Whether the uploaded validator signature sequence is consistent with the validator sequence in the contract
 
 ```
- function submitHead(bytes memory _epochHeaderBytes, bytes memory commitBytes) external
+ function submitHead(bytes memory _epochHeaderBytes, bytes memory commitBytes, bool lookByIndex) external
 ```
 
 ## 2.get validators and powers of next epoch
