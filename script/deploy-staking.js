@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 // const {ethers} = require("ethers")
-const epochPeriod = 10000
+const epochPeriod = 100800
 let main =async function(){
 
     let factory = await ethers.getContractFactory("TestStaking");
@@ -30,7 +30,7 @@ let main =async function(){
     let tx1= await staking.initProposalVals(validators,powers)
     let receipt1 = await tx1.wait();
 
-    let[ _vals , _powers ] = await staking.proposalValidators()
+    let[ _vals , _powers ] = await staking.proposedValidators()
     console.log(_vals,_powers)
 
 
@@ -43,7 +43,8 @@ let main =async function(){
     await tx.wait()
     let [currentEpochIdx, currentVals, currentPowers] = await lc.getCurrentEpoch();
     console.log(currentEpochIdx,currentVals,currentPowers)
-
+    let nextHeight = await lc.getNextEpochHeight();
+    console.log('next epoch hetight:',nextHeight)
     
 }
 

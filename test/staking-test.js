@@ -116,14 +116,17 @@ describe("light client test", function () {
   let test;
   let db;
   let staking;
+  let epochPeriod;
+
   beforeEach(async () => {
+    
     let factory = await ethers.getContractFactory("TestStaking");
     staking = await factory.deploy(
       "0x8072113C11cE4F583Ac1104934386a171f5f7c3A",
       10000,
       10000,
       10000,
-      100, //number of validator with state of 'bonded'
+      4, //number of validator with state of 'bonded'
       100,
       10,
       1000,
@@ -136,33 +139,34 @@ describe("light client test", function () {
     db = await factory1.deploy();
     await db.deployed();
 
+    epochPeriod = 100800;
     let factory2 = await ethers.getContractFactory("LightClient");
-    test = await factory2.deploy(10000, staking.address);
+    test = await factory2.deploy(epochPeriod, staking.address);
     await test.deployed();
   });
 
-  it("verify header hash signature", async function () {
-    const wallet = await ethers.Wallet.createRandom();
-    vals = ["0x33Ec47F63Dcda97930dFbaE32c0EEBFb5cD476c5"];
-    powers = ["0x01"];
-    let newHeader = new Header(vals, powers);
-    let h1 = Object.values(newHeader);
+  // it("verify header hash signature", async function () {
+  //   const wallet = await ethers.Wallet.createRandom();
+  //   vals = ["0x33Ec47F63Dcda97930dFbaE32c0EEBFb5cD476c5"];
+  //   powers = ["0x01"];
+  //   let newHeader = new Header(vals, powers);
+  //   let h1 = Object.values(newHeader);
 
-    let rlpheaderBytes = rlpdata(h1);
-    let headerhash = dataHash(rlpheaderBytes);
+  //   let rlpheaderBytes = rlpdata(h1);
+  //   let headerhash = dataHash(rlpheaderBytes);
 
-    let dataSignature = await generateSignature(rlpheaderBytes, wallet);
+  //   let dataSignature = await generateSignature(rlpheaderBytes, wallet);
 
-    const signer = wallet.address;
-    let hash = await db.HashTest(rlpheaderBytes);
-    check("Hash", hash, headerhash);
+  //   const signer = wallet.address;
+  //   let hash = await db.HashTest(rlpheaderBytes);
+  //   check("Hash", hash, headerhash);
 
-    let getAddr = await db.RecoverSignatureTest(rlpheaderBytes, dataSignature);
-    check("Recover Address", getAddr, signer);
+  //   let getAddr = await db.RecoverSignatureTest(rlpheaderBytes, dataSignature);
+  //   check("Recover Address", getAddr, signer);
 
-    let valid = await db.verifySignatureTest(signer, rlpheaderBytes, dataSignature);
-    check("Verify Signature", valid, true);
-  });
+  //   let valid = await db.verifySignatureTest(signer, rlpheaderBytes, dataSignature);
+  //   check("Verify Signature", valid, true);
+  // });
 
   it("submit epoch head with large number of validators", async function () {
   
@@ -170,7 +174,7 @@ describe("light client test", function () {
       const vals = [];
       const powers = [];
       const initpowers = [];
-      let valNum = 10;
+      let valNum = 4;
       for (let i = 0; i < valNum; i++) {
         const wallet = await ethers.Wallet.createRandom();
         wallets.push(wallet);
@@ -191,7 +195,7 @@ describe("light client test", function () {
       checkArray("Powers", currentPowers, powers);
 
       let prev_epoch_wallets = wallets;
-      let epochHeight2 = BigNumber.from(10000);
+      let epochHeight2 = BigNumber.from(epochPeriod);
       for (let epochIdx = 2; epochIdx < 10; epochIdx++) {
         let wallets2 = [];
         let vals2 = [];
@@ -223,7 +227,7 @@ describe("light client test", function () {
         checkArray("POWERS", currentPowers, powers2);
 
         prev_epoch_wallets = wallets2;
-        epochHeight2 = epochHeight2.add(10000);
+        epochHeight2 = epochHeight2.add(epochPeriod);
       }
 
   });
