@@ -170,7 +170,11 @@ library BlockDecoder {
                 require(vaddr == validators[i], "validator no exist");
                 idx = i;
             } else {
-                idx = _validatorIndex(vaddr, validators);
+                bool exist;
+                (exist, idx) = _validatorIndex(vaddr, validators);
+                if (!exist) {
+                    continue;
+                }
             }
 
             bytes memory signMsg = voteSignBytes(commit, chainId, i);
@@ -191,16 +195,15 @@ library BlockDecoder {
         return true;
     }
 
-    function _validatorIndex(address val, address[] memory vals) internal pure returns (uint256 index) {
-        bool exist;
+    function _validatorIndex(address val, address[] memory vals) internal pure returns (bool exist, uint256 index) {
         for (index = 0; index < vals.length; index++) {
             if (val == vals[index]) {
                 exist = true;
                 break;
             }
         }
-        require(exist, "validator no exist");
-        return index;
+
+        return (exist, index);
     }
 
     function verifySignature(
