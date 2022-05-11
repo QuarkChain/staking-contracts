@@ -106,3 +106,4 @@ node_modules
 cache
 artifacts
 bin
+scripts/contract-address-localhost.json

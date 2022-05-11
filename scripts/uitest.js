@@ -295,26 +295,16 @@ async function upload(address, profile) {
 async function main() {
   console.log("network:", hre.network.name)
   // step 1 deploy
-  // await deployContracts();
-
   // step 2 PoS register and bond
-  // await register(3);
-
   // step 3 init Epoch
-  // await initLightClient();
+  // step 4 submit header for each epoch
 
-  // step 4 move submit header
-
-  // await toNextEpoch()
-  // setInterval(async () => {
-  //   await toNextEpoch()
-  // }, 10000);
-  
-  while (true) {
-    await new Promise(r => setTimeout(r, 2000));
-    await ethers.provider.send('evm_mine');
-    console.log("block", await ethers.provider.getBlockNumber())
-  }
+  await deployContracts();
+  await register(3);
+  await initLightClient();
+  setInterval(async () => {
+    await toNextEpoch()
+  }, 10000);
 
 }
 

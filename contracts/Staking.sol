@@ -47,6 +47,7 @@ contract Staking is Pauser, Whitelist {
     event Undelegated(address indexed valAddr, address indexed delAddr, uint256 amount);
     event Slash(address indexed valAddr, uint64 nonce, uint256 slashAmt);
     event SlashAmtCollected(address indexed recipient, uint256 amount);
+    event ValidatorRemoved(address indexed valAddr, address indexed signerAddr);
 
     /**
      * @notice Staking constructor
@@ -291,6 +292,12 @@ contract Staking is Pauser, Whitelist {
         validator.undelegationTokens -= tokens;
         CELER_TOKEN.safeTransfer(delAddr, tokens);
         emit Undelegated(_valAddr, delAddr, tokens);
+        if (validator.tokens <= 2 && validator.undelegationTokens <= 2) {
+            delete validators[_valAddr];
+            delete signerVals[validator.signer];
+            _removeFrom(_valAddr, valAddrs);
+            emit ValidatorRemoved(_valAddr, validator.signer);
+        }
     }
 
     /**
@@ -648,12 +655,11 @@ contract Staking is Pauser, Whitelist {
             delegator.shares = 0;
         }
         require(delegator.shares == 0 || delegator.shares >= dt.CELR_DECIMAL, "not enough remaining shares");
-
+        if (delegator.shares == 0) {
+            _removeFrom(delAddr, validator.delAddrs);
+        }
         if (validator.status == dt.ValidatorStatus.Unbonded) {
             CELER_TOKEN.safeTransfer(delAddr, _tokens);
-            if (delegator.shares == 0) {
-                _removeFrom(delAddr, validator.delAddrs);
-            }
             emit Undelegated(_valAddr, delAddr, _tokens);
             return;
         } else if (validator.status == dt.ValidatorStatus.Bonded) {
