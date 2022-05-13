@@ -52,7 +52,7 @@ module.exports = {
       }
     }]
   },
-  defaultNetwork: "rinkeby",
+  defaultNetwork: "localhost",
   networks: {
     localhost: {
       chainId: 31337,

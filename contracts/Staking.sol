@@ -292,6 +292,9 @@ contract Staking is Pauser, Whitelist {
         validator.undelegationTokens -= tokens;
         CELER_TOKEN.safeTransfer(delAddr, tokens);
         emit Undelegated(_valAddr, delAddr, tokens);
+        if (delegator.shares == 0 && delegator.undelegations.head == delegator.undelegations.tail) {
+            delete validator.delegators[delAddr];
+        }
         if (validator.tokens <= 2 && validator.undelegationTokens <= 2) {
             delete validators[_valAddr];
             delete signerVals[validator.signer];
@@ -504,6 +507,7 @@ contract Staking is Pauser, Whitelist {
     function getValidatorTokens(address _valAddr) public view returns (uint256) {
         return validators[_valAddr].tokens;
     }
+
     /**
      * @notice Get delegators
      * @param _valAddr the address of the validator
@@ -661,6 +665,12 @@ contract Staking is Pauser, Whitelist {
         if (validator.status == dt.ValidatorStatus.Unbonded) {
             CELER_TOKEN.safeTransfer(delAddr, _tokens);
             emit Undelegated(_valAddr, delAddr, _tokens);
+            if (validator.tokens <= 2 && validator.undelegationTokens <= 2) {
+                delete validators[_valAddr];
+                delete signerVals[validator.signer];
+                _removeFrom(_valAddr, valAddrs);
+                emit ValidatorRemoved(_valAddr, validator.signer);
+            }
             return;
         } else if (validator.status == dt.ValidatorStatus.Bonded) {
             bondedTokens -= _tokens;
@@ -803,17 +813,16 @@ contract Staking is Pauser, Whitelist {
     }
 
     function proposedValidators() public view returns (address[] memory, uint256[] memory) {
-        // uint256 _maxBondedValidators = params[dt.ParamName.MaxBondedValidators];
-        address[] memory _proposedValidators = new address[](bondedValAddrs.length);
-        uint256[] memory _proposedVotingPowers = new uint256[](bondedValAddrs.length);
-        for (uint256 i = 0; i < bondedValAddrs.length; i++) {
+        uint256 bondedLen = bondedValAddrs.length;
+        address[] memory _proposedValidators = new address[](bondedLen);
+        uint256[] memory _proposedVotingPowers = new uint256[](bondedLen);
+        for (uint256 i = 0; i < bondedLen; i++) {
             if (validators[bondedValAddrs[i]].tokens != 0) {
                 _proposedValidators[i] = validators[bondedValAddrs[i]].signer;
                 // we assume minimal stake is also bigger than 1e18
                 _proposedVotingPowers[i] = validators[bondedValAddrs[i]].tokens / STAKE_UINT;
             }
         }
-
         return (_proposedValidators, _proposedVotingPowers);
     }
 }
