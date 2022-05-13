@@ -6,6 +6,9 @@ interface ILightClient {
         uint256[] curVotingPowers;
     }
 
+    /**
+     * @notice Initialize epoch data
+     */
     function initEpoch(
         address[] memory epochSigners,
         uint256[] memory epochVotingPowers,
@@ -13,13 +16,18 @@ interface ILightClient {
         bytes32 headHash
     ) external;
 
+    /**
+     * @notice Submit epoch head
+     */
     function submitHead(
         uint256,
         bytes memory _epochHeaderBytes,
         bytes memory commitBytes
     ) external;
 
-    /* LightClient */
+    /**
+     * @notice Get the validator, voting weight and block height of the current epoch
+     */
     function getCurrentEpoch()
         external
         view
@@ -29,25 +37,58 @@ interface ILightClient {
             uint256[] memory
         );
 
+    /**
+     * @notice Get the index of current epoch
+     */
     function curEpochIdx() external view returns (uint256);
 
+    /**
+     * @notice Get the block height of current epoch
+     */
     function curEpochHeight() external view returns (uint256 height);
 
+    /**
+     * @notice Get the block height of next epoch
+     */
     function getNextEpochHeight() external view returns (uint256 height);
 
+    /**
+     * @notice set the value of epoch period
+     */
     function setEpochPeriod(uint256 _epochPeriod) external;
 
+    /**
+     * @notice Get epoch period
+     */
     function epochPeriod() external view returns (uint256 height);
 
+    /**
+     * @notice Get address of staking contract
+     */
     function getStaking() external view returns (address);
 
+    /**
+     * @notice Get proposed validators
+     */
     function proposedValidators() external view returns (address[] memory, uint256[] memory);
 
+    /**
+     * @notice Get epoch index by block height
+     */
     function getEpochIdx(uint256 height) external view returns (uint256);
 
-    function checkHeightRange(uint256 height) external view returns (bool);
+    /**
+     * @notice Check height is valid or not
+     */
+    function isInHeightRange(uint256 height) external view returns (bool);
 
+    /**
+     * @notice Get the smallest block index stored in the contract
+     */
     function minEpochIdx() external view returns (uint256);
 
+    /**
+     * @notice Get valid block height range
+     */
     function heightRange() external view returns (uint256 min, uint256 max);
 }

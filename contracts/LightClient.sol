@@ -130,7 +130,7 @@ contract LightClient is ILightClient, Ownable {
         return curEpochIdx - _distance;
     }
 
-    function checkHeightRange(uint256 height) public view override returns (bool) {
+    function isInHeightRange(uint256 height) public view override returns (bool) {
         (uint256 min, uint256 max) = heightRange();
         if (height >= min && height <= max) {
             return true;
