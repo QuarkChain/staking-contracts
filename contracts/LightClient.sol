@@ -1,9 +1,13 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 pragma solidity ^0.8.0;
 
 import "./lib/BlockDecoder.sol";
+import "./interfaces/IW3qERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IStaking.sol";
 import "./interfaces/ILightClient.sol";
+import {DataTypes as dt} from "./lib/DataTypes.sol";
 
 contract LightClient is ILightClient, Ownable {
     using BlockDecoder for bytes;
@@ -19,10 +23,16 @@ contract LightClient is ILightClient, Ownable {
     uint256 public override epochPeriod;
 
     IStaking public staking;
+    IW3qERC20 public w3qErc20;
 
-    constructor(uint256 _epochPeriod, address _staking) {
+    constructor(
+        uint256 _epochPeriod,
+        address _staking,
+        address _w3qErc20
+    ) {
         epochPeriod = _epochPeriod;
         staking = IStaking(_staking);
+        w3qErc20 = IW3qERC20(_w3qErc20);
     }
 
     function _epochPosition(uint256 _epochIdx) internal pure returns (uint256) {
@@ -39,7 +49,7 @@ contract LightClient is ILightClient, Ownable {
     }
 
     /**
-     * Create validator set for an epoch
+     * Submit epoch head
      */
     function submitHead(
         uint256,
@@ -83,12 +93,47 @@ contract LightClient is ILightClient, Ownable {
         require(_epochSigners.length == _epochVotingPowers.length, "incorrect length");
 
         uint256 position = _epochPosition(_epochIdx);
+        // TODO: add rewards to validators
+
         curEpochIdx = _epochIdx;
         curEpochHeight = _epochHeight;
         epochs[position].curEpochVals = _epochSigners;
         epochs[position].curVotingPowers = _epochVotingPowers;
+    }
 
-        // TODO: add rewards to validators
+    function perEpochReward(address[] memory rewardVals, uint256[] memory votePowers) internal {
+        uint256 totalPower = totalVotePowers(votePowers);
+        uint256 epochReward = w3qErc20.perEpochReward();
+
+        // Calculate the amount of tokens to reward validator and delegators
+        for (uint256 i = 0; i < rewardVals.length; i++) {
+            address valAddr = rewardVals[i];
+
+            uint256 valShares = staking.getValidatorShare(valAddr);
+            address[] memory delAddrs = staking.getDelegatorAddrs(valAddr);
+
+            uint256 totalRewardAmount = (epochReward * votePowers[i]) / totalPower;
+            uint256 valRewardAmount = totalRewardAmount;
+
+            for (uint256 j = 0; j < delAddrs.length; j++) {
+                address delAddr = delAddrs[j];
+                uint256 delShare = staking.getDelegatorShare(valAddr, delAddr);
+                uint256 delRewardAmount = (totalRewardAmount * delShare) / valShares;
+
+                // reward delegator
+                w3qErc20.mint(delAddr, delRewardAmount);
+                valRewardAmount -= delRewardAmount;
+            }
+
+            // reward validator
+            w3qErc20.mint(valAddr, valRewardAmount);
+        }
+    }
+
+    function totalVotePowers(uint256[] memory votePowers) internal pure returns (uint256 sum) {
+        for (uint256 i = 0; i < votePowers.length; i++) {
+            sum += votePowers[i];
+        }
     }
 
     function getCurrentEpoch()

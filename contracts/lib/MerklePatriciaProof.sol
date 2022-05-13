@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 /*
  * @title MerklePatriciaVerifier
  * @author Sam Mayo (sammayo888@gmail.com)

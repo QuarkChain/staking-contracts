@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 pragma solidity ^0.8.0;
 
 import "./interfaces/IW3qProver.sol";
@@ -14,7 +16,11 @@ contract W3qProver is LightClient, IW3qProver {
     mapping(uint256 => bytes32) public override headHashes;
     mapping(uint256 => BlockDecoder.HeadCore) public headCores;
 
-    constructor(uint256 _epochPeriod, address _staking) LightClient(_epochPeriod, _staking) {}
+    constructor(
+        uint256 _epochPeriod,
+        address _staking,
+        address _w3qErc20
+    ) LightClient(_epochPeriod, _staking, _w3qErc20) {}
 
     function initEpoch(
         address[] memory _epochSigners,
