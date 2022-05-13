@@ -638,6 +638,32 @@ contract Staking is Pauser, Whitelist {
         return params[_name];
     }
 
+    /**
+     * @notice Check if min token requirements are met when undelegate tokens
+     * @param _valAddr the address of the validator
+     * @param _tokens tokens to undelegate
+     */
+    function isUndelegateCauseUnbonding(address _valAddr, uint256 _tokens) public view returns (bool) { 
+        dt.Validator storage validator = validators[_valAddr];
+        if (validator.status != dt.ValidatorStatus.Bonded) {
+            return false;
+        }
+        uint256 valTokens = validator.tokens - _tokens;
+        if (valTokens < params[dt.ParamName.MinValidatorTokens]) {
+            return true;
+        }
+        uint256 shares = _tokenToShare(_tokens, validator.tokens, validator.shares);
+        uint256 delShare = validator.delegators[_valAddr].shares - shares;
+        uint256 valShares = validator.shares - shares;
+        if (msg.sender == _valAddr) {
+            uint256 selfDelegation = _shareToToken(delShare, valTokens, valShares);
+            if (selfDelegation < validator.minSelfDelegation) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /*********************
      * Private Functions *
      *********************/
