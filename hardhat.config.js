@@ -6,6 +6,8 @@ require("@nomiclabs/hardhat-web3");
 require("hardhat-gas-reporter");
 require("solidity-coverage");
 
+const keys = require("./scripts/keys.json");
+
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
 task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
@@ -50,7 +52,12 @@ module.exports = {
       }
     }]
   },
+  defaultNetwork: "localhost",
   networks: {
+    localhost: {
+      chainId: 31337,
+      accounts: keys.map(k=>k.privateKey)
+    },
     hardhat: {
       initialBaseFeePerGas: 0, // workaround from https://github.com/sc-forks/solidity-coverage/issues/652#issuecomment-896330136 . Remove when that issue is closed.
     },
@@ -61,8 +68,7 @@ module.exports = {
     },
     rinkeby: {
       url: process.env.RINKEBY_URL || "",
-      accounts:
-        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      accounts: keys.map(k=>k.privateKey)
     },
   },
   gasReporter: {
