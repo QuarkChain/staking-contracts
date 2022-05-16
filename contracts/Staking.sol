@@ -47,7 +47,6 @@ contract Staking is Pauser, Whitelist {
     event Undelegated(address indexed valAddr, address indexed delAddr, uint256 amount);
     event Slash(address indexed valAddr, uint64 nonce, uint256 slashAmt);
     event SlashAmtCollected(address indexed recipient, uint256 amount);
-    event ValidatorRemoved(address indexed valAddr, address indexed signerAddr);
 
     /**
      * @notice Staking constructor
@@ -217,9 +216,6 @@ contract Staking is Pauser, Whitelist {
         uint256 shares = _tokenToShare(_tokens, validator.tokens, validator.shares);
 
         dt.Delegator storage delegator = validator.delegators[delAddr];
-        if (delegator.shares == 0) {
-            validator.delAddrs.push(delAddr);
-        }
         delegator.shares += shares;
         validator.shares += shares;
         validator.tokens += _tokens;
@@ -292,12 +288,6 @@ contract Staking is Pauser, Whitelist {
         validator.undelegationTokens -= tokens;
         CELER_TOKEN.safeTransfer(delAddr, tokens);
         emit Undelegated(_valAddr, delAddr, tokens);
-        if (validator.tokens <= 2 && validator.undelegationTokens <= 2) {
-            delete validators[_valAddr];
-            delete signerVals[validator.signer];
-            _removeFrom(_valAddr, valAddrs);
-            emit ValidatorRemoved(_valAddr, validator.signer);
-        }
     }
 
     /**
@@ -504,14 +494,6 @@ contract Staking is Pauser, Whitelist {
     function getValidatorTokens(address _valAddr) public view returns (uint256) {
         return validators[_valAddr].tokens;
     }
-    /**
-     * @notice Get delegators
-     * @param _valAddr the address of the validator
-     * @return Delegator addresses of this validator
-     */
-    function getDelegators(address _valAddr) public view returns (address[] memory) {
-        return validators[_valAddr].delAddrs;
-    }
 
     /**
      * @notice Get validator info
@@ -655,9 +637,7 @@ contract Staking is Pauser, Whitelist {
             delegator.shares = 0;
         }
         require(delegator.shares == 0 || delegator.shares >= dt.CELR_DECIMAL, "not enough remaining shares");
-        if (delegator.shares == 0) {
-            _removeFrom(delAddr, validator.delAddrs);
-        }
+
         if (validator.status == dt.ValidatorStatus.Unbonded) {
             CELER_TOKEN.safeTransfer(delAddr, _tokens);
             emit Undelegated(_valAddr, delAddr, _tokens);
@@ -682,20 +662,6 @@ contract Staking is Pauser, Whitelist {
         delegator.undelegations.tail++;
 
         emit DelegationUpdate(_valAddr, delAddr, validator.tokens, delegator.shares, -int256(_tokens));
-    }
-
-    function _removeFrom(address _addr, address[] storage _addrArray) private {
-        uint256 lastIndex = _addrArray.length - 1;
-        for (uint256 i = 0; i < _addrArray.length; i++) {
-            if (_addrArray[i] == _addr) {
-                if (i < lastIndex) {
-                    _addrArray[i] = _addrArray[lastIndex];
-                }
-                _addrArray.pop();
-                return;
-            }
-        }
-        revert("Address not found");
     }
 
     /**
@@ -803,10 +769,10 @@ contract Staking is Pauser, Whitelist {
     }
 
     function proposedValidators() public view returns (address[] memory, uint256[] memory) {
-        // uint256 _maxBondedValidators = params[dt.ParamName.MaxBondedValidators];
-        address[] memory _proposedValidators = new address[](bondedValAddrs.length);
-        uint256[] memory _proposedVotingPowers = new uint256[](bondedValAddrs.length);
-        for (uint256 i = 0; i < bondedValAddrs.length; i++) {
+        uint256 _maxBondedValidators = params[dt.ParamName.MaxBondedValidators];
+        address[] memory _proposedValidators = new address[](_maxBondedValidators);
+        uint256[] memory _proposedVotingPowers = new uint256[](_maxBondedValidators);
+        for (uint256 i = 0; i < _maxBondedValidators; i++) {
             if (validators[bondedValAddrs[i]].tokens != 0) {
                 _proposedValidators[i] = validators[bondedValAddrs[i]].signer;
                 // we assume minimal stake is also bigger than 1e18
