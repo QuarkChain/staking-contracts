@@ -295,7 +295,7 @@ contract Staking is Pauser, Whitelist {
         if (delegator.shares == 0 && delegator.undelegations.head == delegator.undelegations.tail) {
             delete validator.delegators[delAddr];
         }
-        _removeValidator(validator, _valAddr);
+        _checkEmptyValidator(validator, _valAddr);
     }
 
     /**
@@ -686,7 +686,7 @@ contract Staking is Pauser, Whitelist {
         if (validator.status == dt.ValidatorStatus.Unbonded) {
             CELER_TOKEN.safeTransfer(delAddr, _tokens);
             emit Undelegated(_valAddr, delAddr, _tokens);
-            _removeValidator(validator, _valAddr);
+            _checkEmptyValidator(validator, _valAddr);
             return;
         } else if (validator.status == dt.ValidatorStatus.Bonded) {
             bondedTokens -= _tokens;
@@ -710,7 +710,7 @@ contract Staking is Pauser, Whitelist {
         emit DelegationUpdate(_valAddr, delAddr, validator.tokens, delegator.shares, -int256(_tokens));
     }
 
-    function _removeValidator(dt.Validator storage validator, address _valAddr) private {
+    function _checkEmptyValidator(dt.Validator storage validator, address _valAddr) private {
         if (validator.tokens <= 2 && validator.undelegationTokens <= 2) {
             delete validators[_valAddr];
             delete signerVals[validator.signer];
