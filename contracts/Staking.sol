@@ -651,9 +651,6 @@ contract Staking is Pauser, Whitelist {
 
         if (validator.status == dt.ValidatorStatus.Unbonded) {
             CELER_TOKEN.safeTransfer(delAddr, _tokens);
-            if (delegator.shares == 0) {
-                _removeFrom(delAddr, validator.delAddrs);
-            }
             emit Undelegated(_valAddr, delAddr, _tokens);
             return;
         } else if (validator.status == dt.ValidatorStatus.Bonded) {
@@ -676,20 +673,6 @@ contract Staking is Pauser, Whitelist {
         delegator.undelegations.tail++;
 
         emit DelegationUpdate(_valAddr, delAddr, validator.tokens, delegator.shares, -int256(_tokens));
-    }
-
-    function _removeFrom(address _addr, address[] storage _addrArray) private {
-        uint256 lastIndex = _addrArray.length - 1;
-        for (uint256 i = 0; i < _addrArray.length; i++) {
-            if (_addrArray[i] == _addr) {
-                if (i < lastIndex) {
-                    _addrArray[i] = _addrArray[lastIndex];
-                }
-                _addrArray.pop();
-                return;
-            }
-        }
-        revert("Address not found");
     }
 
     /**
