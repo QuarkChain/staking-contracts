@@ -47,7 +47,6 @@ contract Staking is Pauser, Whitelist {
     event Undelegated(address indexed valAddr, address indexed delAddr, uint256 amount);
     event Slash(address indexed valAddr, uint64 nonce, uint256 slashAmt);
     event SlashAmtCollected(address indexed recipient, uint256 amount);
-    event ValidatorRemoved(address indexed valAddr, address indexed signerAddr);
 
     /**
      * @notice Staking constructor
@@ -292,10 +291,6 @@ contract Staking is Pauser, Whitelist {
         validator.undelegationTokens -= tokens;
         CELER_TOKEN.safeTransfer(delAddr, tokens);
         emit Undelegated(_valAddr, delAddr, tokens);
-        if (delegator.shares == 0 && delegator.undelegations.head == delegator.undelegations.tail) {
-            delete validator.delegators[delAddr];
-        }
-        _removeValidator(validator, _valAddr);
     }
 
     /**
@@ -633,32 +628,6 @@ contract Staking is Pauser, Whitelist {
         return params[_name];
     }
 
-    /**
-     * @notice Check if bonded validator could be unbonding when undelegate tokens
-     * @param _valAddr the address of the validator
-     * @param _tokens tokens to undelegate
-     */
-    function isUndelegateCauseUnbonding(address _valAddr, uint256 _tokens) public view returns (bool) {
-        dt.Validator storage validator = validators[_valAddr];
-        if (validator.status != dt.ValidatorStatus.Bonded) {
-            return false;
-        }
-        uint256 valTokens = validator.tokens - _tokens;
-        if (valTokens < params[dt.ParamName.MinValidatorTokens]) {
-            return true;
-        }
-        uint256 shares = _tokenToShare(_tokens, validator.tokens, validator.shares);
-        uint256 delShare = validator.delegators[_valAddr].shares - shares;
-        uint256 valShares = validator.shares - shares;
-        if (msg.sender == _valAddr) {
-            uint256 selfDelegation = _shareToToken(delShare, valTokens, valShares);
-            if (selfDelegation < validator.minSelfDelegation) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     /*********************
      * Private Functions *
      *********************/
@@ -680,13 +649,10 @@ contract Staking is Pauser, Whitelist {
             delegator.shares = 0;
         }
         require(delegator.shares == 0 || delegator.shares >= dt.CELR_DECIMAL, "not enough remaining shares");
-        if (delegator.shares == 0) {
-            _removeFrom(delAddr, validator.delAddrs);
-        }
+
         if (validator.status == dt.ValidatorStatus.Unbonded) {
             CELER_TOKEN.safeTransfer(delAddr, _tokens);
             emit Undelegated(_valAddr, delAddr, _tokens);
-            _removeValidator(validator, _valAddr);
             return;
         } else if (validator.status == dt.ValidatorStatus.Bonded) {
             bondedTokens -= _tokens;
@@ -708,29 +674,6 @@ contract Staking is Pauser, Whitelist {
         delegator.undelegations.tail++;
 
         emit DelegationUpdate(_valAddr, delAddr, validator.tokens, delegator.shares, -int256(_tokens));
-    }
-
-    function _removeValidator(dt.Validator storage validator, address _valAddr) private {
-        if (validator.tokens <= 2 && validator.undelegationTokens <= 2) {
-            delete validators[_valAddr];
-            delete signerVals[validator.signer];
-            _removeFrom(_valAddr, valAddrs);
-            emit ValidatorRemoved(_valAddr, validator.signer);
-        }
-    }
-
-    function _removeFrom(address _addr, address[] storage _addrArray) private {
-        uint256 lastIndex = _addrArray.length - 1;
-        for (uint256 i = 0; i < _addrArray.length; i++) {
-            if (_addrArray[i] == _addr) {
-                if (i < lastIndex) {
-                    _addrArray[i] = _addrArray[lastIndex];
-                }
-                _addrArray.pop();
-                return;
-            }
-        }
-        revert("Address not found");
     }
 
     /**
@@ -842,11 +785,9 @@ contract Staking is Pauser, Whitelist {
         address[] memory _proposedValidators = new address[](bondedLen);
         uint256[] memory _proposedVotingPowers = new uint256[](bondedLen);
         for (uint256 i = 0; i < bondedLen; i++) {
-            if (validators[bondedValAddrs[i]].tokens != 0) {
-                _proposedValidators[i] = validators[bondedValAddrs[i]].signer;
-                // we assume minimal stake is also bigger than 1e18
-                _proposedVotingPowers[i] = validators[bondedValAddrs[i]].tokens / STAKE_UINT;
-            }
+            _proposedValidators[i] = validators[bondedValAddrs[i]].signer;
+            // we assume minimal stake is also bigger than 1e18
+            _proposedVotingPowers[i] = validators[bondedValAddrs[i]].tokens / STAKE_UINT;
         }
         return (_proposedValidators, _proposedVotingPowers);
     }
