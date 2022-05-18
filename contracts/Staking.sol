@@ -217,7 +217,18 @@ contract Staking is Pauser, Whitelist {
 
         dt.Delegator storage delegator = validator.delegators[delAddr];
         if (delegator.shares == 0) {
-            validator.delAddrs.push(delAddr);
+            address[] storage delAddrs = validator.delAddrs;
+            uint256 len = delAddrs.length;
+            bool exists = false;
+            for (uint256 i = 0; i < len; i++) {
+                if (delAddrs[i] == delAddr) {
+                    exists = true;
+                    break;
+                }
+            }
+            if (!exists) {
+                delAddrs.push(delAddr);
+            }
         }
         delegator.shares += shares;
         validator.shares += shares;
