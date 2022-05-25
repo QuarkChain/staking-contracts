@@ -199,7 +199,7 @@ describe("verify header test", function () {
     }
   });
 
-  it("verify All signatures with enough votePower and unIndex", async function () {
+  it("verify out-of-order signatures", async function () {
     // BlockID is headerHash
     let BlockID = "0xf37408df54bc50498ee191212106d581d262bc382c985aa994809d4844b196e8";
     let sig1 = [
@@ -230,24 +230,20 @@ describe("verify header test", function () {
     let commit = [100, 2, BlockID, sigs];
     let chainId = 3334;
 
-    let voteSignBytes = [
-      "0xf1026402a0f37408df54bc50498ee191212106d581d262bc382c985aa994809d4844b196e88398b2f18865766d5f33333334",
-      "0xf2026402a0f37408df54bc50498ee191212106d581d262bc382c985aa994809d4844b196e884013170798865766d5f33333334",
-      "0xf1026402a0f37408df54bc50498ee191212106d581d262bc382c985aa994809d4844b196e883c9adf98865766d5f33333334",
-    ];
     let validators = [
       "0x8072113C11cE4F583Ac1104934386a171f5f7c3A",
       "0x81934dF63c39b3c7954ee4ed7aCA4f4448458756",
       "0xA1c345Ed4810B8dbAd88B8D46f05d91E13Cd1be1",
     ];
     let powers = [1, 1, 1];
+    let succeed = await db.verifyAllSignatureTest(commit, validators, powers, false, false, 2, chainId);
+    check("Verify All Signature", succeed, true);
 
-    try {
-      let succeed = await db.verifyAllSignatureTest(commit, validators, powers, false, false, 2, chainId);
-      check("Verify All Signature", succeed, true);
-    } catch (error) {
-      console.log(error);
-    }
+    // fail to verify the third signature 
+    let doubleSigs = [sig1,sig2,sig1]
+    let commitWithDouleSigs = [100, 2, BlockID, doubleSigs];
+    let fail = await db.verifyAllSignatureTest(commitWithDouleSigs, validators, powers, false, false, 2, chainId);
+    check("Verify All Signature", fail, false);
   });
 
   it("verify Header", async function () {

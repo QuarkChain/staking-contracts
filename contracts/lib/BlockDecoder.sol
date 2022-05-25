@@ -201,10 +201,10 @@ library BlockDecoder {
                 exist = true;
                 if (index != vals.length - 1) {
                     vals[index] = vals[vals.length - 1];
-                    uint256 newLen = vals.length - 1;
-                    assembly {
-                        mstore(vals, newLen)
-                    }
+                }
+                uint256 newLen = vals.length - 1;
+                assembly {
+                    mstore(vals, newLen)
                 }
 
                 break;
