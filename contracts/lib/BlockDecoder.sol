@@ -199,6 +199,14 @@ library BlockDecoder {
         for (index = 0; index < vals.length; index++) {
             if (val == vals[index]) {
                 exist = true;
+                if (index != vals.length -1){
+                    vals[index] = vals[vals.length-1];
+                    uint newLen = vals.length -1;
+                    assembly{
+                    mstore(vals,newLen)
+                    }
+                }
+               
                 break;
             }
         }

@@ -82,6 +82,16 @@ class Commit {
   genCommitRlp() {
     return rlpdata(Object.values(this));
   }
+
+  shuffleSigsOrder() {
+    let newSigs = []
+    for (let i=this.signatures.length-1 ; i>=0 ;i--){
+      newSigs.push(this.signatures[i])
+    }
+    this.signatures = newSigs
+  }
+
+
 }
 
 async function signVotes(_wallets, _commit) {
@@ -216,6 +226,69 @@ describe("light client test", function () {
       let commitBytes2 = commit2.genCommitRlp();
 
       let tx2 = await test.submitHead(rlpHeader2, commitBytes2, true);
+      let receipt2 = await tx2.wait();
+      console.log("EPOCHID:", epochIdx, " VALNUM:", valNum, " GasUsed:", receipt2.gasUsed.toString());
+
+      [currentEpochIdx, currentVals, currentPowers] = await test.getCurrentEpoch();
+      check("epochId", currentEpochIdx, epochIdx);
+      checkArray("VALIDATORS", currentVals, vals2);
+      checkArray("POWERS", currentPowers, powers2);
+
+      prev_epoch_wallets = wallets2;
+      epochHeight2 = epochHeight2.add(epochPeriod);
+    }
+  });
+
+  it("submit epoch head out-of-order signatures", async function () {
+    const wallets = [];
+    const vals = [];
+    const powers = [];
+    const initpowers = [];
+    let valNum = 4;
+    for (let i = 0; i < valNum; i++) {
+      const wallet = await ethers.Wallet.createRandom();
+      wallets.push(wallet);
+      vals.push(wallet.address);
+      powers.push("0x01"); //10
+      initpowers.push("0x01"); //10 * 10^18
+    }
+
+    //1. initalize light client
+    const initHeight = 0;
+    const genesisBlockHash = "0x0000000000000000000000000000000000000000000000000000000000000000";
+    let tx = await test.initEpoch(vals, initpowers, initHeight, genesisBlockHash);
+
+    let [currentEpochIdx, currentVals, currentPowers] = await test.getCurrentEpoch();
+    let j = 0;
+
+    checkArray("Validators", currentVals, vals);
+    checkArray("Powers", currentPowers, powers);
+
+    let prev_epoch_wallets = wallets;
+    let epochHeight2 = BigNumber.from(epochPeriod);
+    for (let epochIdx = 2; epochIdx < 10; epochIdx++) {
+      let wallets2 = [];
+      let vals2 = [];
+      let powers2 = [];
+      for (let i = 0; i < valNum; i++) {
+        const wallet = await ethers.Wallet.createRandom();
+        wallets2.push(wallet);
+        vals2.push(wallet.address);
+        powers2.push("0x02"); //10
+      }
+
+      // console.log("H2:",epochHeight2)
+      let epochHeader2 = new Header(vals2, powers2);
+      epochHeader2.setBlockHeight(epochHeight2.toHexString());
+      let rlpHeader2 = genHeadRlp(epochHeader2);
+      let hash2 = genHeadhash(epochHeader2);
+
+      let commit2 = new Commit(epochHeight2.toHexString(), "0x02", hash2, prev_epoch_wallets); // wallets should use the wallet of validators of epoch 1
+      await signVotes(prev_epoch_wallets, commit2);
+      commit2.shuffleSigsOrder();
+      let commitBytes2 = commit2.genCommitRlp();
+
+      let tx2 = await test.submitHead(rlpHeader2, commitBytes2, false);
       let receipt2 = await tx2.wait();
       console.log("EPOCHID:", epochIdx, " VALNUM:", valNum, " GasUsed:", receipt2.gasUsed.toString());
 
