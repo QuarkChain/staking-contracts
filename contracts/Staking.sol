@@ -216,6 +216,9 @@ contract Staking is Pauser, Whitelist {
         uint256 shares = _tokenToShare(_tokens, validator.tokens, validator.shares);
 
         dt.Delegator storage delegator = validator.delegators[delAddr];
+        if (delegator.shares == 0) {
+            validator.delAddrs.push(delAddr);
+        }
         delegator.shares += shares;
         validator.shares += shares;
         validator.tokens += _tokens;
@@ -494,6 +497,14 @@ contract Staking is Pauser, Whitelist {
     function getValidatorTokens(address _valAddr) public view returns (uint256) {
         return validators[_valAddr].tokens;
     }
+    /**
+     * @notice Get delegators
+     * @param _valAddr the address of the validator
+     * @return Delegator addresses of this validator
+     */
+    function getDelegators(address _valAddr) public view returns (address[] memory) {
+        return validators[_valAddr].delAddrs;
+    }
 
     /**
      * @notice Get validator info
@@ -640,6 +651,9 @@ contract Staking is Pauser, Whitelist {
 
         if (validator.status == dt.ValidatorStatus.Unbonded) {
             CELER_TOKEN.safeTransfer(delAddr, _tokens);
+            if (delegator.shares == 0) {
+                _removeFrom(delAddr, validator.delAddrs);
+            }
             emit Undelegated(_valAddr, delAddr, _tokens);
             return;
         } else if (validator.status == dt.ValidatorStatus.Bonded) {
@@ -662,6 +676,20 @@ contract Staking is Pauser, Whitelist {
         delegator.undelegations.tail++;
 
         emit DelegationUpdate(_valAddr, delAddr, validator.tokens, delegator.shares, -int256(_tokens));
+    }
+
+    function _removeFrom(address _addr, address[] storage _addrArray) private {
+        uint256 lastIndex = _addrArray.length - 1;
+        for (uint256 i = 0; i < _addrArray.length; i++) {
+            if (_addrArray[i] == _addr) {
+                if (i < lastIndex) {
+                    _addrArray[i] = _addrArray[lastIndex];
+                }
+                _addrArray.pop();
+                return;
+            }
+        }
+        revert("Address not found");
     }
 
     /**
@@ -769,17 +797,14 @@ contract Staking is Pauser, Whitelist {
     }
 
     function proposedValidators() public view returns (address[] memory, uint256[] memory) {
-        uint256 _maxBondedValidators = params[dt.ParamName.MaxBondedValidators];
-        address[] memory _proposedValidators = new address[](_maxBondedValidators);
-        uint256[] memory _proposedVotingPowers = new uint256[](_maxBondedValidators);
-        for (uint256 i = 0; i < _maxBondedValidators; i++) {
-            if (validators[bondedValAddrs[i]].tokens != 0) {
-                _proposedValidators[i] = validators[bondedValAddrs[i]].signer;
-                // we assume minimal stake is also bigger than 1e18
-                _proposedVotingPowers[i] = validators[bondedValAddrs[i]].tokens / STAKE_UINT;
-            }
+        uint256 bondedLen = bondedValAddrs.length;
+        address[] memory _proposedValidators = new address[](bondedLen);
+        uint256[] memory _proposedVotingPowers = new uint256[](bondedLen);
+        for (uint256 i = 0; i < bondedLen; i++) {
+            _proposedValidators[i] = validators[bondedValAddrs[i]].signer;
+            // we assume minimal stake is also bigger than 1e18
+            _proposedVotingPowers[i] = validators[bondedValAddrs[i]].tokens / STAKE_UINT;
         }
-
         return (_proposedValidators, _proposedVotingPowers);
     }
 }
