@@ -1,11 +1,20 @@
 const { expect } = require("chai");
+const { BigNumber } = require("ethers");
 const { ethers } = require("hardhat");
 // const {ethers} = require("ethers")
 const epochPeriod = 10000;
 let main = async function () {
+
+  let erc20Factory = await ethers.getContractFactory("W3qERC20");
+  let erc20 = await erc20Factory.deploy("w3qErc20","w3q");
+  await erc20.deployed()
+
+  let user_addr = "0x6D4a199f603b084a2f1761Dc9F322F92E68bfd5E"
+  await erc20.mint(user_addr,BigNumber.from("1000000000000000000000000"))
+
   let factory = await ethers.getContractFactory("TestStaking");
   let staking = await factory.deploy(
-    "0x8072113C11cE4F583Ac1104934386a171f5f7c3A",
+    erc20.address,
     10000, //_proposalDeposit
     10000, //_votingPeriod
     10000, //_unbondingPeriod
@@ -36,7 +45,7 @@ let main = async function () {
   let factory2 = await ethers.getContractFactory("LightClient");
   let lc = await factory2.deploy(epochPeriod, staking.address);
   await lc.deployed();
-  console.log("LC:", lc.address);
+  
 
   console.log("Init epoch");
   let tx = await lc.initEpoch(
@@ -50,6 +59,13 @@ let main = async function () {
   console.log(currentEpochIdx, currentVals, currentPowers);
   let nextHeight = await lc.getNextEpochHeight();
   console.log("next epoch hetight:", nextHeight);
+
+
+  console.log("w3q:",erc20.address)
+  console.log("Balance:",await erc20.balanceOf(user_addr))
+  console.log("staking:",staking.address)
+  console.log("light client:", lc.address);
+
 };
 
 main().catch((error) => {
