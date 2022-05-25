@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 // const {ethers} = require("ethers")
-const epochPeriod = 100800;
+const epochPeriod = 10000;
 let main = async function () {
   let factory = await ethers.getContractFactory("TestStaking");
   let staking = await factory.deploy(
@@ -19,10 +19,10 @@ let main = async function () {
   await staking.deployed();
 
   let validators = [
-    "0xC7B6Ad1038b5a79c12B066d6E3e8972f3EceaDe7",
-    "0x90A7BfF0B4b11F365367d4C9fE084223c850B229",
-    "0x9b29aD441B195B641aA0A45ad4085c51DA62FE54",
-    "0x1B47a4d3266213354d59ECAF338A4698177819d1",
+    "0x2cff0b8e36522eba76f6f5c328d58581243882e4",
+    "0x959994471dee37411f579dd2820a8743cba20f46",
+    "0x977cfc676bb06daed7ddfa7711bcfe8d50c93081",
+    "0xcd21538af6e33ff6fcf1e2ca20f771413004cfd3",
   ];
   let powers = [1, 1, 1, 1];
 
@@ -43,7 +43,7 @@ let main = async function () {
     validators,
     powers,
     0,
-    "0x864e3e31173c40a384f8b0fd15b80accd229be020d6ae97fcf4036106aee77b1"
+    "0x0000000000000000000000000000000000000000000000000000000000000000"
   );
   await tx.wait();
   let [currentEpochIdx, currentVals, currentPowers] = await lc.getCurrentEpoch();
