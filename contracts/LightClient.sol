@@ -74,6 +74,7 @@ contract LightClient is ILightClient, Ownable {
 
         require(curEpochHeight + epochPeriod == height, "incorrect height");
         _createEpochValidators(curEpochIdx + 1, height, vals, powers);
+        _perEpochReward(epochs[position].curEpochVals, epochs[position].curVotingPowers);
     }
 
     /**
@@ -101,7 +102,7 @@ contract LightClient is ILightClient, Ownable {
         epochs[position].curVotingPowers = _epochVotingPowers;
     }
 
-    function perEpochReward(address[] memory rewardVals, uint256[] memory votePowers) internal {
+    function _perEpochReward(address[] memory rewardVals, uint256[] memory votePowers) internal {
         uint256 totalPower = totalVotePowers(votePowers);
         uint256 epochReward = w3qErc20.perEpochReward();
 

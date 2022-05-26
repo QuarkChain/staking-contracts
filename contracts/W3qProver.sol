@@ -71,6 +71,8 @@ contract W3qProver is LightClient, IW3qProver {
         if (latestBlockHeight < height) {
             latestBlockHeight = height;
         }
+
+        _perEpochReward(epochs[_position].curEpochVals, epochs[_position].curVotingPowers);
     }
 
     function proveTx(uint256 height, IW3qProver.Proof memory proof) external view override returns (bool) {

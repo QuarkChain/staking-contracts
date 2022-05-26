@@ -6,5 +6,14 @@ import "../Staking.sol";
 import "../LightClient.sol";
 
 contract LightClientTest is LightClient {
-    constructor(uint256 _epochPeriod, address _staking,address _w3qErc20) LightClient(_epochPeriod, _staking,_w3qErc20) {}
+    constructor(
+        uint256 _epochPeriod,
+        address _staking,
+        address _w3qErc20
+    ) LightClient(_epochPeriod, _staking, _w3qErc20) {}
+
+    function epochReward() public {
+        uint256 position = _epochPosition(curEpochIdx);
+        _perEpochReward(epochs[position].curEpochVals, epochs[position].curVotingPowers);
+    }
 }
