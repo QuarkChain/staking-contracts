@@ -14,14 +14,13 @@ function checkArray(f, got, want) {
 
 async function deploy(contractName, args) {
   let Contract = await hre.ethers.getContractFactory(contractName);
-  console.log(`Deploying contract ${contractName}`);
   const contract = await Contract.deploy(...args);
   await contract.deployed();
   console.log(`Contract ${contractName} deployed to ${contract.address}`);
   return contract;
 }
 
-describe.only("delegate test", function () {
+describe("delegate test", function () {
   let w3q;
   let staking;
   const vals = [];
@@ -51,22 +50,18 @@ describe.only("delegate test", function () {
       vals.push(wallet);
       tx = await w3q.transfer(wallet.address, ethers.utils.parseEther("1000"));
       rt = await tx.wait();
-      console.log(`transfer w3q ${wallet.address}: ${rt.status}`)
       rt = await owner.sendTransaction({
         to: wallet.address,
         value: ethers.utils.parseEther("1")
       });
-      console.log(`transfer ether ${wallet.address}`)
       wallet = wallet.connect(ethers.provider);
       tx = await w3q.connect(wallet).approve(staking.address, ethers.constants.MaxUint256);
       rt = await tx.wait();
-      console.log(`approve ${wallet.address}: ${rt.status}`)
       const amount = ethers.utils.parseEther("10" + i);
       const commissionRate = "10" + i;
       const signer = ethers.Wallet.createRandom();
       tx = await staking.connect(wallet).initializeValidator(signer.address, amount, commissionRate);
       rt = await tx.wait();
-      console.log(`signer ${signer.address}: ${rt.status}`)
     }
     const size = await staking.getValidatorNum();
     check("size", size, vSize);
@@ -77,7 +72,7 @@ describe.only("delegate test", function () {
   });
 
 
-  it("delegate", async function () {
+  it("delegate/undelegate", async function () {
     const validitor = vals[2].connect(ethers.provider);
     const delegator = vals[0].connect(ethers.provider);
     tx = await staking.connect(delegator).delegate(validitor.address, ethers.utils.parseEther("100"));
