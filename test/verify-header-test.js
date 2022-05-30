@@ -239,6 +239,12 @@ describe("verify header test", function () {
     let succeed = await db.verifyAllSignatureTest(commit, validators, powers, false, false, 2, chainId);
     check("Verify All Signature", succeed, true);
 
+    // 
+    let anotherOrderSigs = [sig3,sig2,sig1]
+    let anotherCommit = [100 , 2 ,BlockID,anotherOrderSigs];
+    let anotherSucceed = await db.verifyAllSignatureTest(anotherCommit,validators,powers,false,false ,2,chainId);
+    check("Verify All Signature", anotherSucceed, true);
+
     // fail to verify the third signature 
     let doubleSigs = [sig1,sig2,sig1]
     let commitWithDouleSigs = [100, 2, BlockID, doubleSigs];
