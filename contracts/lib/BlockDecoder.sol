@@ -137,7 +137,7 @@ library BlockDecoder {
 
         // verify all signatures
         require(
-            verifyAllSignature(commit, validators, votePowers, lookUpByIndex, false, votingPowerNeed(votePowers), 3334),
+            verifyAllSignature(commit, validators, votePowers, lookUpByIndex, false, votingPowerNeed(votePowers), 3333),
             "failed to verify all signatures"
         );
 
