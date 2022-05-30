@@ -1,70 +1,84 @@
 const { expect } = require("chai");
+const { sign } = require("crypto");
 const { BigNumber } = require("ethers");
-const { ethers } = require("hardhat");
+const { ethers, web3 } = require("hardhat");
 // const {ethers} = require("ethers")
-const epochPeriod = 10000;
+
 let main = async function () {
+  
+  let epochPeriod = 10000;
+  let w3qUint = BigNumber.from("1000000000000000000")
+  let ETH = BigNumber.from("300000000000000000")
+  let mintAmount = w3qUint.mul(1000)
+
+  let _unbondingPeriod = 3 * epochPeriod;
+  let _maxBondedValidators = 5
+  let _minValidatorTokens = w3qUint
+  let _minSelfDelegation = w3qUint
+  let _validatorBondInterval = 1
+  
+  let signers = await ethers.getSigners();
+  let owner = signers[0]
+  let vals = signers.slice(1,signers.length)
+  console.log("get from config:",owner.address,vals.length)
 
   let erc20Factory = await ethers.getContractFactory("W3qERC20");
-  let erc20 = await erc20Factory.deploy("w3qErc20","w3q");
-  await erc20.deployed()
-
-  let user_addr = "0x6D4a199f603b084a2f1761Dc9F322F92E68bfd5E"
-  await erc20.mint(user_addr,BigNumber.from("1000000000000000000000000"))
+  let w3q = await erc20Factory.connect(owner).deploy("Web3Q Native Token","W3Q");
+  await w3q.deployed()
 
   let factory = await ethers.getContractFactory("TestStaking");
-  let staking = await factory.deploy(
-    erc20.address,
+  let staking = await factory.connect(owner).deploy(
+    w3q.address,
     10000, //_proposalDeposit
     10000, //_votingPeriod
-    10000, //_unbondingPeriod
-    4, //_maxBondedValidators
-    100, //_minValidatorTokens
-    10000, //_minSelfDelegation
+    _unbondingPeriod,
+    _maxBondedValidators,
+    _minValidatorTokens,
+    _minSelfDelegation,
     10000, //_advanceNoticePeriod
-    10000, //_validatorBondInterval
+    _validatorBondInterval,
     10000 //_maxSlashFactor
   );
   await staking.deployed();
 
-  let validators = [
-    "0x2cff0b8e36522eba76f6f5c328d58581243882e4",
-    "0x959994471dee37411f579dd2820a8743cba20f46",
-    "0x977cfc676bb06daed7ddfa7711bcfe8d50c93081",
-    "0xcd21538af6e33ff6fcf1e2ca20f771413004cfd3",
-  ];
-  let powers = [1, 1, 1, 1];
-
-  let tx1 = await staking.initProposalVals(validators, powers);
-  let receipt1 = await tx1.wait();
-
-  let [_vals, _powers] = await staking.proposedValidators();
-  console.log(_vals, _powers);
-
-  console.log("deploy light client");
-  let factory2 = await ethers.getContractFactory("LightClient");
-  let lc = await factory2.deploy(epochPeriod, staking.address);
-  await lc.deployed();
+  for (let i = 0;i<vals.length;i++){
+    console.log("_______________[",i,"] validators Bonding__________________")
   
+    // transfer eth
+    await owner.sendTransaction({to:vals[i].address,value:ETH})
+    await w3q.connect(owner).mint(vals[i].address,mintAmount)
+    await w3q.connect(vals[i]).approve(staking.address,mintAmount)
 
-  console.log("Init epoch");
-  let tx = await lc.initEpoch(
-    validators,
-    powers,
-    0,
-    "0x0000000000000000000000000000000000000000000000000000000000000000"
-  );
-  await tx.wait();
-  let [currentEpochIdx, currentVals, currentPowers] = await lc.getCurrentEpoch();
-  console.log(currentEpochIdx, currentVals, currentPowers);
-  let nextHeight = await lc.getNextEpochHeight();
-  console.log("next epoch hetight:", nextHeight);
+    console.log("initializeValidator()....")
+    // let gasEst = staking.estimateGas.initializeValidator(vals[i].address,_minSelfDelegation,0)
+    await staking.connect(vals[i]).initializeValidator(vals[i].address,_minSelfDelegation,0,{gasLimit:600000});
+    console.log("bondValidator()....")
+    await staking.connect(vals[i]).bondValidator({gasLimit:300000});
+  } 
 
+  let [validators,powers] = await staking.proposedValidators();
+  console.log("_____________😄 get proposedValidators() from Staking___________________")
+  for (let i =0 ;i < validators.length;i++){
+    console.log("Addr:",validators[i],"   Powers:",powers[i].toNumber())
+  }
 
-  console.log("w3q:",erc20.address)
-  console.log("Balance:",await erc20.balanceOf(user_addr))
+  // let tx = await lc.connect(owner).initEpoch(
+  //   validators,
+  //   powers,
+  //   0,
+  //   "0x0000000000000000000000000000000000000000000000000000000000000000"
+  // );
+  // await tx.wait();
+  // let [currentEpochIdx, currentVals, currentPowers] = await lc.getCurrentEpoch();
+  // console.log("__________________________________Current Epoch Info_______________________________")
+  // console.log("Current Epoch Idx:",currentEpochIdx, "\nCurrent Epoch Validators:", currentVals,"\nCurrent Epoch VotePowers:", currentPowers);
+  // let nextHeight = await lc.getNextEpochHeight();
+  // console.log("Next Epoch Block Height:", nextHeight.toNumber());
+
+  console.log("_________________________________Contract Info____________________________________")
+  console.log("w3q:",w3q.address)
   console.log("staking:",staking.address)
-  console.log("light client:", lc.address);
+  // console.log("light client:", lc.address);
 
 };
 
