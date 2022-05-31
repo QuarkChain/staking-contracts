@@ -163,15 +163,16 @@ library BlockDecoder {
         require(votePowers.length == validators.length, "incorrect length");
         uint256 talliedVotingPower;
         uint256 idx;
+        uint256 actualLen = validators.length;
         for (uint256 i = 0; i < commit.Signatures.length; i++) {
-            address vaddr = commit.Signatures[i].ValidatorAddress;
+            // address vaddr = commit.Signatures[i].ValidatorAddress;
 
             if (lookUpByIndex) {
-                require(vaddr == validators[i], "validator no exist");
+                require(commit.Signatures[i].ValidatorAddress == validators[i], "validator no exist");
                 idx = i;
             } else {
                 bool exist;
-                (exist, idx) = _validatorIndex(vaddr, validators);
+                (exist, idx, actualLen) = _validatorIndex(commit.Signatures[i].ValidatorAddress, validators,votePowers,actualLen);
                 if (!exist) {
                     continue;
                 }
@@ -179,7 +180,7 @@ library BlockDecoder {
 
             bytes memory signMsg = voteSignBytes(commit, chainId, i);
 
-            if (verifySignature(vaddr, signMsg, commit.Signatures[i].Signature)) {
+            if (verifySignature(commit.Signatures[i].ValidatorAddress, signMsg, commit.Signatures[i].Signature)) {
                 // valid signature
                 talliedVotingPower += votePowers[idx];
             }
@@ -195,23 +196,30 @@ library BlockDecoder {
         return true;
     }
 
-    function _validatorIndex(address val, address[] memory vals) internal pure returns (bool exist, uint256 index) {
-        for (index = 0; index < vals.length; index++) {
+    function _validatorIndex(address val, address[] memory vals,uint256[] memory powers,uint256 actualLen) internal pure returns (bool exist, uint256 index,uint256 len) {
+        for (index = 0; index < actualLen; index++) {
             if (val == vals[index]) {
                 exist = true;
-                if (index != vals.length - 1) {
-                    vals[index] = vals[vals.length - 1];
-                }
-                uint256 newLen = vals.length - 1;
-                assembly {
-                    mstore(vals, newLen)
+                if (index != actualLen - 1) {
+                    address tmpVal = vals[index];
+                    vals[index] = vals[actualLen - 1];
+                    vals[actualLen - 1] = tmpVal;
+
+                    uint256 tmpPower = powers[index];
+                    powers[index] = powers[actualLen - 1];
+                    powers[actualLen - 1] = tmpPower;
                 }
 
                 break;
             }
         }
 
-        return (exist, index);
+        if (exist){
+            return (exist, index,actualLen-1);
+        }else{
+            return (exist, index,actualLen);
+        }
+        
     }
 
     function verifySignature(
