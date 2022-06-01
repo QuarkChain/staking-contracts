@@ -41,7 +41,7 @@ let main = async function () {
   );
   await staking.deployed();
 
-  for (let i = 0;i<vals.length;i++){
+  for (let i = 0;i<4;i++){
     console.log("_______________[",i,"] validators Bonding__________________")
   
     // transfer eth
@@ -52,6 +52,7 @@ let main = async function () {
     console.log("initializeValidator()....")
     // let gasEst = staking.estimateGas.initializeValidator(vals[i].address,_minSelfDelegation,0)
     await staking.connect(vals[i]).initializeValidator(vals[i].address,_minSelfDelegation,0,{gasLimit:600000});
+    await staking.connect(vals[i]).delegate(vals[i].address,w3qUint.mul(10),{gasLimit:300000});
     console.log("bondValidator()....")
     await staking.connect(vals[i]).bondValidator({gasLimit:300000});
   } 
@@ -62,23 +63,9 @@ let main = async function () {
     console.log("Addr:",validators[i],"   Powers:",powers[i].toNumber())
   }
 
-  // let tx = await lc.connect(owner).initEpoch(
-  //   validators,
-  //   powers,
-  //   0,
-  //   "0x0000000000000000000000000000000000000000000000000000000000000000"
-  // );
-  // await tx.wait();
-  // let [currentEpochIdx, currentVals, currentPowers] = await lc.getCurrentEpoch();
-  // console.log("__________________________________Current Epoch Info_______________________________")
-  // console.log("Current Epoch Idx:",currentEpochIdx, "\nCurrent Epoch Validators:", currentVals,"\nCurrent Epoch VotePowers:", currentPowers);
-  // let nextHeight = await lc.getNextEpochHeight();
-  // console.log("Next Epoch Block Height:", nextHeight.toNumber());
-
   console.log("_________________________________Contract Info____________________________________")
   console.log("w3q:",w3q.address)
   console.log("staking:",staking.address)
-  // console.log("light client:", lc.address);
 
 };
 
