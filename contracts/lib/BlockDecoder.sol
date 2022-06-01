@@ -215,7 +215,7 @@ library BlockDecoder {
         }
 
         if (exist){
-            return (exist, index,actualLen-1);
+            return (exist, actualLen - 1,actualLen-1);
         }else{
             return (exist, index,actualLen);
         }
