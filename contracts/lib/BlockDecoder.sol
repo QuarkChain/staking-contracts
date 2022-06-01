@@ -172,7 +172,12 @@ library BlockDecoder {
                 idx = i;
             } else {
                 bool exist;
-                (exist, idx, actualLen) = _validatorIndex(commit.Signatures[i].ValidatorAddress, validators,votePowers,actualLen);
+                (exist, idx, actualLen) = _validatorIndex(
+                    commit.Signatures[i].ValidatorAddress,
+                    validators,
+                    votePowers,
+                    actualLen
+                );
                 if (!exist) {
                     continue;
                 }
@@ -196,7 +201,20 @@ library BlockDecoder {
         return true;
     }
 
-    function _validatorIndex(address val, address[] memory vals,uint256[] memory powers,uint256 actualLen) internal pure returns (bool exist, uint256 index,uint256 len) {
+    function _validatorIndex(
+        address val,
+        address[] memory vals,
+        uint256[] memory powers,
+        uint256 actualLen
+    )
+        internal
+        pure
+        returns (
+            bool exist,
+            uint256 index,
+            uint256 len
+        )
+    {
         for (index = 0; index < actualLen; index++) {
             if (val == vals[index]) {
                 exist = true;
@@ -214,12 +232,11 @@ library BlockDecoder {
             }
         }
 
-        if (exist){
-            return (exist, actualLen - 1,actualLen-1);
-        }else{
-            return (exist, index,actualLen);
+        if (exist) {
+            return (exist, actualLen - 1, actualLen - 1);
+        } else {
+            return (exist, index, actualLen);
         }
-        
     }
 
     function verifySignature(
