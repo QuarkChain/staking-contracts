@@ -5,7 +5,6 @@ require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-web3");
 require("hardhat-gas-reporter");
 require("solidity-coverage");
-require("@tenderly/hardhat-tenderly");
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -64,7 +63,13 @@ module.exports = {
           {privateKey : "0x8de23ff93e1e67c2689ef0fac136631da09dd4f48625578e70816ae0ca6814dd",balance:"0"},
           {privateKey : "0x83f91c53b3b8fcac8a356fab003a90437cad93c0b2f8d8720c58505f144c6ef4",balance:"0"},
         ] 
-        : [],
+        : [
+          {privateKey : "0x7ced114b2cd194d46bc4b9f4d81818b4ed5860e28a2c350849bfe2d4a41ada02",balance:"1000000000000000000"},
+          {privateKey : "0x8000a89f9bfbeaf4cd164319481bd675280676d00e4bb12c83802e0b00225527",balance:"1000000000000000000"},
+          {privateKey : "0x4a006b3dfd0dfc8131bd596a7f8de2d418e90cb6e7e9effac7166b04fb153337",balance:"1000000000000000000"},
+          {privateKey : "0x8de23ff93e1e67c2689ef0fac136631da09dd4f48625578e70816ae0ca6814dd",balance:"1000000000000000000"},
+          {privateKey : "0x83f91c53b3b8fcac8a356fab003a90437cad93c0b2f8d8720c58505f144c6ef4",balance:"1000000000000000000"},
+        ],
     },
     ropsten: {
       url: process.env.ROPSTEN_URL || "",
