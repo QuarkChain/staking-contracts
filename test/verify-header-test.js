@@ -199,6 +199,67 @@ describe("verify header test", function () {
     }
   });
 
+  it("verify out-of-order signatures", async function () {
+    // BlockID is headerHash
+    let BlockID = "0xf37408df54bc50498ee191212106d581d262bc382c985aa994809d4844b196e8";
+    let sig1 = [
+      2,
+      "0x8072113C11cE4F583Ac1104934386a171f5f7c3A",
+      10007281,
+      toValidSig(
+        "0xeb75b168348c7c01ca360509701779e996cc0e20961b4ec88ec9277417aac71564b47ca3db305b43d1639a2fe29d50941cd695354043db11fbdf933642052eda01"
+      ),
+    ];
+    let sig2 = [
+      2,
+      "0x81934dF63c39b3c7954ee4ed7aCA4f4448458756",
+      20017273,
+      toValidSig(
+        "0x38c48cde144e4fe9de510ff6526e4c21e47ed60192cebac793872654cea32d7a5a54f5a44636fc66c4f1426b289d645905d44e1ef16ae1e330f21dff4fb1549400"
+      ),
+    ];
+    let sig3 = [
+      2,
+      "0xA1c345Ed4810B8dbAd88B8D46f05d91E13Cd1be1",
+      13217273,
+      toValidSig(
+        "0xed2764e109175046cc5f5459e63ee9e49131ce7ccb5053392ea1d4e2d31f7d856bc9eb6489b769f94e1e27a4c57d668416397795f7807d226a9f2023d3325f9301"
+      ),
+    ];
+    let sigs = [sig2, sig3, sig1];
+    let commit = [100, 2, BlockID, sigs];
+    let chainId = 3334;
+
+    let validators = [
+      "0x8072113C11cE4F583Ac1104934386a171f5f7c3A",
+      "0x81934dF63c39b3c7954ee4ed7aCA4f4448458756",
+      "0xA1c345Ed4810B8dbAd88B8D46f05d91E13Cd1be1",
+    ];
+    let powers = [1, 1, 1];
+    let succeed = await db.verifyAllSignatureTest(commit, validators, powers, false, false, 2, chainId);
+    check("Verify All Signature", succeed, true);
+
+    let powers_anotherOrderSigs = [5,6,9]
+    let anotherOrderSigs = [sig3,sig2,sig1]
+    let anotherCommit = [100 , 2 ,BlockID,anotherOrderSigs];
+    let anotherSucceed = await db.verifyAllSignatureTest(anotherCommit,validators,powers_anotherOrderSigs,false,false ,19,chainId);
+    check("Verify All Signature", anotherSucceed, true);
+
+    let fail_anotherOrderSigs = await db.verifyAllSignatureTest(anotherCommit,validators,powers_anotherOrderSigs,false,false ,20,chainId);
+    check("Verify All Signature", fail_anotherOrderSigs, false);
+
+    // fail to verify the third signature 
+    let doubleSigs = [sig1,sig2,sig1]
+    let powers_doubleSigs = [1,2,1]
+    let commitWithDouleSigs = [100, 2, BlockID, doubleSigs];
+    let fail = await db.verifyAllSignatureTest(commitWithDouleSigs, validators, powers_doubleSigs, false, false, 3, chainId);
+    check("Verify All Signature", fail, false);
+
+    let succeed1 = await db.verifyAllSignatureTest(commitWithDouleSigs, validators, powers_doubleSigs, false, false, 2, chainId);
+    check("Verify All Signature", succeed1, true);
+
+  });
+
   it("verify Header", async function () {
     let headerRlp =
       "0xf90302a0112233445566778899001122334455667788990011223344556677889900aabba0000033445566778899001122334455667788990011223344556677889900aabb94d76fb45ed105f1851d74233f884d256c4fdad634a01100000000000000000000000000000000000000000000000000000000000011a02200000000000000000000000000000000000000000000000000000000000022a03300000000000000000000000000000000000000000000000000000000000033b9010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000822af8648703328b9554a1b68501dce452ff8405e30a3cb8950301010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010102a04400000000000000000000000000000000000000000000000000000000000044880102030405060708820309830c9f1bf83f94aa000000000000000000000000000000000000aa94bb000000000000000000000000000000000000bb94cc000000000000000000000000000000000000ccc3030303a0cc000000000000000000000000000000000000000000000000000000000000cc";
@@ -217,10 +278,10 @@ describe("verify header test", function () {
     check("header height", commit.Height, res.baseData.Number);
 
     try {
-      let [height, hash , ] = await db.verifyHeaderTest(headerRlp, commitRlp, validators, powers);
+      let [height, hash] = await db.verifyHeaderTest(headerRlp, commitRlp, validators, powers);
       check("Verify Header", height, commit.Height);
     } catch (error) {
-      throw error
+      throw error;
     }
   });
 });

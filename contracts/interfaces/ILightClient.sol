@@ -15,7 +15,8 @@ interface ILightClient {
 
     function submitHead(
         bytes memory _epochHeaderBytes,
-        bytes memory commitBytes
+        bytes memory commitBytes,
+        bool lookByIndex
     ) external;
 
     /* LightClient */

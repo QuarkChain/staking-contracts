@@ -82,6 +82,16 @@ class Commit {
   genCommitRlp() {
     return rlpdata(Object.values(this));
   }
+
+  shuffleSigsOrder() {
+    let newSigs = []
+    for (let i=this.signatures.length-1 ; i>=0 ;i--){
+      newSigs.push(this.signatures[i])
+    }
+    this.signatures = newSigs
+  }
+
+
 }
 
 async function signVotes(_wallets, _commit) {
@@ -116,6 +126,8 @@ describe("light client test", function () {
   let test;
   let db;
   let staking;
+  let epochPeriod;
+
   beforeEach(async () => {
     let factory = await ethers.getContractFactory("TestStaking");
     staking = await factory.deploy(
@@ -123,7 +135,7 @@ describe("light client test", function () {
       10000,
       10000,
       10000,
-      100, //number of validator with state of 'bonded'
+      4, //number of validator with state of 'bonded'
       100,
       10,
       1000,
@@ -136,8 +148,9 @@ describe("light client test", function () {
     db = await factory1.deploy();
     await db.deployed();
 
+    epochPeriod = 100800;
     let factory2 = await ethers.getContractFactory("LightClient");
-    test = await factory2.deploy(10000, staking.address);
+    test = await factory2.deploy(epochPeriod, staking.address);
     await test.deployed();
   });
 
@@ -165,66 +178,127 @@ describe("light client test", function () {
   });
 
   it("submit epoch head with large number of validators", async function () {
-  
-      const wallets = [];
-      const vals = [];
-      const powers = [];
-      const initpowers = [];
-      let valNum = 10;
+    const wallets = [];
+    const vals = [];
+    const powers = [];
+    const initpowers = [];
+    let valNum = 4;
+    for (let i = 0; i < valNum; i++) {
+      const wallet = await ethers.Wallet.createRandom();
+      wallets.push(wallet);
+      vals.push(wallet.address);
+      powers.push("0x01"); //10
+      initpowers.push("0x01"); //10 * 10^18
+    }
+
+    //1. initalize light client
+    const initHeight = 0;
+    const genesisBlockHash = "0x0000000000000000000000000000000000000000000000000000000000000000";
+    let tx = await test.initEpoch(vals, initpowers, initHeight, genesisBlockHash);
+
+    let [currentEpochIdx, currentVals, currentPowers] = await test.getCurrentEpoch();
+    let j = 0;
+
+    checkArray("Validators", currentVals, vals);
+    checkArray("Powers", currentPowers, powers);
+
+    let prev_epoch_wallets = wallets;
+    let epochHeight2 = BigNumber.from(epochPeriod);
+    for (let epochIdx = 2; epochIdx < 10; epochIdx++) {
+      let wallets2 = [];
+      let vals2 = [];
+      let powers2 = [];
       for (let i = 0; i < valNum; i++) {
         const wallet = await ethers.Wallet.createRandom();
-        wallets.push(wallet);
-        vals.push(wallet.address);
-        powers.push("0x01"); //10
-        initpowers.push("0x01"); //10 * 10^18
+        wallets2.push(wallet);
+        vals2.push(wallet.address);
+        powers2.push("0x02"); //10
       }
 
-      //1. initalize light client
-      const initHeight = 0;
-      const genesisBlockHash = "0x0000000000000000000000000000000000000000000000000000000000000000";
-      let tx = await test.initEpoch(vals, initpowers, initHeight, genesisBlockHash);
+      // console.log("H2:",epochHeight2)
+      let epochHeader2 = new Header(vals2, powers2);
+      epochHeader2.setBlockHeight(epochHeight2.toHexString());
+      let rlpHeader2 = genHeadRlp(epochHeader2);
+      let hash2 = genHeadhash(epochHeader2);
 
-      let [currentEpochIdx, currentVals, currentPowers] = await test.getCurrentEpoch();
-      let j = 0;
+      let commit2 = new Commit(epochHeight2.toHexString(), "0x02", hash2, prev_epoch_wallets); // wallets should use the wallet of validators of epoch 1
+      await signVotes(prev_epoch_wallets, commit2);
+      let commitBytes2 = commit2.genCommitRlp();
 
-      checkArray("Validators", currentVals, vals);
-      checkArray("Powers", currentPowers, powers);
+      let tx2 = await test.submitHead(rlpHeader2, commitBytes2, true);
+      let receipt2 = await tx2.wait();
+      console.log("EPOCHID:", epochIdx, " VALNUM:", valNum, " GasUsed:", receipt2.gasUsed.toString());
 
-      let prev_epoch_wallets = wallets;
-      let epochHeight2 = BigNumber.from(10000);
-      for (let epochIdx = 2; epochIdx < 10; epochIdx++) {
-        let wallets2 = [];
-        let vals2 = [];
-        let powers2 = [];
-        for (let i = 0; i < valNum; i++) {
-          const wallet = await ethers.Wallet.createRandom();
-          wallets2.push(wallet);
-          vals2.push(wallet.address);
-          powers2.push("0x02"); //10
-        }
+      [currentEpochIdx, currentVals, currentPowers] = await test.getCurrentEpoch();
+      check("epochId", currentEpochIdx, epochIdx);
+      checkArray("VALIDATORS", currentVals, vals2);
+      checkArray("POWERS", currentPowers, powers2);
 
-        // console.log("H2:",epochHeight2)
-        let epochHeader2 = new Header(vals2, powers2);
-        epochHeader2.setBlockHeight(epochHeight2.toHexString());
-        let rlpHeader2 = genHeadRlp(epochHeader2);
-        let hash2 = genHeadhash(epochHeader2);
+      prev_epoch_wallets = wallets2;
+      epochHeight2 = epochHeight2.add(epochPeriod);
+    }
+  });
 
-        let commit2 = new Commit(epochHeight2.toHexString(), "0x02", hash2, prev_epoch_wallets); // wallets should use the wallet of validators of epoch 1
-        await signVotes(prev_epoch_wallets, commit2);
-        let commitBytes2 = commit2.genCommitRlp();
+  it("submit epoch head out-of-order signatures", async function () {
+    const wallets = [];
+    const vals = [];
+    const powers = [];
+    const initpowers = [];
+    let valNum = 4;
+    for (let i = 0; i < valNum; i++) {
+      const wallet = await ethers.Wallet.createRandom();
+      wallets.push(wallet);
+      vals.push(wallet.address);
+      powers.push("0x01"); //10
+      initpowers.push("0x01"); //10 * 10^18
+    }
 
-        let tx2 = await test.submitHead(rlpHeader2, commitBytes2);
-        let receipt2 = await tx2.wait();
-        console.log("EPOCHID:", epochIdx, " VALNUM:", valNum, " GasUsed:", receipt2.gasUsed.toString());
+    //1. initalize light client
+    const initHeight = 0;
+    const genesisBlockHash = "0x0000000000000000000000000000000000000000000000000000000000000000";
+    let tx = await test.initEpoch(vals, initpowers, initHeight, genesisBlockHash);
 
-        [currentEpochIdx, currentVals, currentPowers] = await test.getCurrentEpoch();
-        check("epochId", currentEpochIdx, epochIdx);
-        checkArray("VALIDATORS", currentVals, vals2);
-        checkArray("POWERS", currentPowers, powers2);
+    let [currentEpochIdx, currentVals, currentPowers] = await test.getCurrentEpoch();
+    let j = 0;
 
-        prev_epoch_wallets = wallets2;
-        epochHeight2 = epochHeight2.add(10000);
+    checkArray("Validators", currentVals, vals);
+    checkArray("Powers", currentPowers, powers);
+
+    let prev_epoch_wallets = wallets;
+    let epochHeight2 = BigNumber.from(epochPeriod);
+    for (let epochIdx = 2; epochIdx < 10; epochIdx++) {
+      let wallets2 = [];
+      let vals2 = [];
+      let powers2 = [];
+      for (let i = 0; i < valNum; i++) {
+        const wallet = await ethers.Wallet.createRandom();
+        wallets2.push(wallet);
+        vals2.push(wallet.address);
+        powers2.push("0x02"); //10
       }
 
+      // console.log("H2:",epochHeight2)
+      let epochHeader2 = new Header(vals2, powers2);
+      epochHeader2.setBlockHeight(epochHeight2.toHexString());
+      let rlpHeader2 = genHeadRlp(epochHeader2);
+      let hash2 = genHeadhash(epochHeader2);
+
+      let commit2 = new Commit(epochHeight2.toHexString(), "0x02", hash2, prev_epoch_wallets); // wallets should use the wallet of validators of epoch 1
+      await signVotes(prev_epoch_wallets, commit2);
+      commit2.shuffleSigsOrder();
+      let commitBytes2 = commit2.genCommitRlp();
+
+      let tx2 = await test.submitHead(rlpHeader2, commitBytes2, false);
+      let receipt2 = await tx2.wait();
+      console.log("EPOCHID:", epochIdx, " VALNUM:", valNum, " GasUsed:", receipt2.gasUsed.toString());
+
+      [currentEpochIdx, currentVals, currentPowers] = await test.getCurrentEpoch();
+      check("epochId", currentEpochIdx, epochIdx);
+      checkArray("VALIDATORS", currentVals, vals2);
+      checkArray("POWERS", currentPowers, powers2);
+
+      prev_epoch_wallets = wallets2;
+      epochHeight2 = epochHeight2.add(epochPeriod);
+    }
   });
 });
