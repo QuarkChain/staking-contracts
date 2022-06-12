@@ -165,7 +165,6 @@ library BlockDecoder {
         uint256 idx;
         uint256 actualLen = validators.length;
         for (uint256 i = 0; i < commit.Signatures.length; i++) {
-            // address vaddr = commit.Signatures[i].ValidatorAddress;
 
             if (lookUpByIndex) {
                 require(commit.Signatures[i].ValidatorAddress == validators[i], "validator no exist");
