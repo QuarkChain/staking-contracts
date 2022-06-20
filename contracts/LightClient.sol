@@ -44,7 +44,8 @@ contract LightClient is ILightClient, Ownable {
     function submitHead(
         uint256,
         bytes memory _epochHeaderBytes,
-        bytes memory commitBytes
+        bytes memory commitBytes,
+        bool lookByIndex
     ) public virtual override {
         //1. verify epoch header
         uint256 position = _epochPosition(curEpochIdx);
@@ -52,7 +53,8 @@ contract LightClient is ILightClient, Ownable {
             _epochHeaderBytes,
             commitBytes,
             epochs[position].curEpochVals,
-            epochs[position].curVotingPowers
+            epochs[position].curVotingPowers,
+            lookByIndex
         );
 
         address[] memory vals = _epochHeaderBytes.decodeNextValidators();

@@ -116,7 +116,8 @@ library BlockDecoder {
         bytes memory headerRlpBytes,
         bytes memory commitRlpBytes,
         address[] memory validators,
-        uint256[] memory votePowers
+        uint256[] memory votePowers,
+        bool lookUpByIndex
     )
         internal
         pure
@@ -136,7 +137,7 @@ library BlockDecoder {
 
         // verify all signatures
         require(
-            verifyAllSignature(commit, validators, votePowers, true, false, votingPowerNeed(votePowers), 3334),
+            verifyAllSignature(commit, validators, votePowers, lookUpByIndex, false, votingPowerNeed(votePowers), 3334),
             "failed to verify all signatures"
         );
 
@@ -162,19 +163,28 @@ library BlockDecoder {
         require(votePowers.length == validators.length, "incorrect length");
         uint256 talliedVotingPower;
         uint256 idx;
+        uint256 actualLen = validators.length;
         for (uint256 i = 0; i < commit.Signatures.length; i++) {
-            address vaddr = commit.Signatures[i].ValidatorAddress;
 
             if (lookUpByIndex) {
-                require(vaddr == validators[i], "validator no exist");
+                require(commit.Signatures[i].ValidatorAddress == validators[i], "validator no exist");
                 idx = i;
             } else {
-                assert(false);
+                bool exist;
+                (exist, idx, actualLen) = _validatorIndex(
+                    commit.Signatures[i].ValidatorAddress,
+                    validators,
+                    votePowers,
+                    actualLen
+                );
+                if (!exist) {
+                    continue;
+                }
             }
 
             bytes memory signMsg = voteSignBytes(commit, chainId, i);
 
-            if (verifySignature(vaddr, signMsg, commit.Signatures[i].Signature)) {
+            if (verifySignature(commit.Signatures[i].ValidatorAddress, signMsg, commit.Signatures[i].Signature)) {
                 // valid signature
                 talliedVotingPower += votePowers[idx];
             }
@@ -188,6 +198,44 @@ library BlockDecoder {
             return false;
         }
         return true;
+    }
+
+    function _validatorIndex(
+        address val,
+        address[] memory vals,
+        uint256[] memory powers,
+        uint256 actualLen
+    )
+        internal
+        pure
+        returns (
+            bool exist,
+            uint256 index,
+            uint256 len
+        )
+    {
+        for (index = 0; index < actualLen; index++) {
+            if (val == vals[index]) {
+                exist = true;
+                if (index != actualLen - 1) {
+                    address tmpVal = vals[index];
+                    vals[index] = vals[actualLen - 1];
+                    vals[actualLen - 1] = tmpVal;
+
+                    uint256 tmpPower = powers[index];
+                    powers[index] = powers[actualLen - 1];
+                    powers[actualLen - 1] = tmpPower;
+                }
+
+                break;
+            }
+        }
+
+        if (exist) {
+            return (exist, actualLen - 1, actualLen - 1);
+        } else {
+            return (exist, index, actualLen);
+        }
     }
 
     function verifySignature(
