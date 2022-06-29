@@ -11,6 +11,9 @@ library BlockDecoder {
     using RLPReader for bytes;
     using Strings for uint256;
 
+    // Size of a word, in bytes.
+    uint256 internal constant WORD_SIZE = 32;
+
     struct HeadCore {
         // bytes32 HeadHash;
         bytes32 Root;
@@ -332,6 +335,29 @@ library BlockDecoder {
         cs.Signature = property(list, 3).toBytes();
     }
 
+    function decodeExtra(bytes memory headerRLPBytes) internal pure returns (uint256[] memory) {
+        RLPReader.RLPItem[] memory list = decodeToHeaderList(headerRLPBytes);
+        RLPReader.RLPItem memory item = list[uint8(HeaderProperty.Extra)];
+        bytes memory encodeData = item.toBytes();
+        bytes memory rlpArrayData = splitExtraData(encodeData);
+        uint256[] memory arr = rlpArrayData.toRlpItem().toUintArray();
+        return arr;
+    }
+
+    function splitExtraData(bytes memory data)public pure returns(bytes memory res){
+        // Get the first four bytes of the data field as len
+        uint256 dLen;
+        assembly {
+            dLen := mload(add(data,0x20))
+        }
+        dLen = dLen >> 224;
+        res = new bytes(dLen);
+
+        uint256 dataptr = dataPtr(data);
+        uint256 resptr = dataPtr(res);
+        copy(dataptr+4, resptr, dLen);
+    }
+
     function decodeNextValidators(bytes memory headerRLPBytes) internal pure returns (address[] memory) {
         RLPReader.RLPItem[] memory list = decodeToHeaderList(headerRLPBytes);
         return _decodeNextValidators(list[uint8(HeaderProperty.NextValidators)]);
@@ -404,5 +430,48 @@ library BlockDecoder {
         array = item.toUintArray();
 
         return array;
+    }
+
+    // Copy 'len' bytes from memory address 'src', to address 'dest'.
+    // This function does not check the or destination, it only copies
+    // the bytes.
+    function copy(
+        uint256 src,
+        uint256 dest,
+        uint256 len
+    ) internal pure {
+        // Copy word-length chunks while possible
+        // Reverse copy to prevent out of memory bound error
+        src = src + len;
+        dest = dest + len;
+        for (; len >= WORD_SIZE; len -= WORD_SIZE) {
+            dest -= WORD_SIZE;
+            src -= WORD_SIZE;
+
+            assembly {
+                mstore(dest, mload(src))
+            }
+        }
+
+        if (len == 0) {
+            return;
+        }
+
+        // Copy remaining bytes
+        src = src - len;
+        dest = dest - len;
+        assembly {
+            mstore(dest, mload(src))
+        }
+    }
+
+    function dataPtr(bytes memory bts) internal pure returns (uint256 addr) {
+        assembly {
+            addr := add(
+                bts,
+                /*BYTES_HEADER_SIZE*/
+                32
+            )
+        }
     }
 }
