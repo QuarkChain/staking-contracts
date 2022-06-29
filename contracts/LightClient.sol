@@ -102,8 +102,17 @@ contract LightClient is ILightClient, Ownable {
         epochs[position].curVotingPowers = _epochVotingPowers;
     }
 
-    function _perEpochReward(address[] memory rewardVals, uint256[] memory votePowers) internal {
-        uint256 totalPower = totalVotePowers(votePowers);
+    function _totalProduceBlock(uint256[] memory produceBlocks) internal pure returns(uint256 total){
+        for (uint i=0;i < produceBlocks.length;i++){
+            total += produceBlocks[i];
+        }
+    }
+
+    function _validatorRewardShare(uint256 epochReward,uint256 produceAmount,uint256 totalProduceAmount) internal pure returns(uint256){
+        return epochReward * produceAmount / totalProduceAmount;
+    }
+
+    function _perEpochReward(address[] memory rewardVals,uint256[] memory produceAmountList) internal {
         uint256 epochReward = w3qErc20.perEpochReward();
 
         // Calculate the amount of tokens to reward validator and delegators
@@ -113,7 +122,7 @@ contract LightClient is ILightClient, Ownable {
             uint256 valShares = staking.getValidatorShare(valAddr);
             address[] memory delAddrs = staking.getDelegatorAddrs(valAddr);
 
-            uint256 totalRewardAmount = (epochReward * votePowers[i]) / totalPower;
+            uint256 totalRewardAmount = _validatorRewardShare(epochReward, produceAmountList[i], _totalProduceBlock(produceAmountList));;
             uint256 valRewardAmount = totalRewardAmount;
 
             for (uint256 j = 0; j < delAddrs.length; j++) {
