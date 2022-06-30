@@ -58,12 +58,16 @@ contract W3qProver is LightClient, IW3qProver {
         if (height == curEpochHeight + epochPeriod) {
             address[] memory vals = headBytes.decodeNextValidators();
             uint256[] memory powers = headBytes.decodeNextValidatorPowers();
+            uint256[] memory produceAmountList = headBytes.decodeExtra(); 
+             
             require(
                 vals.length > 0 && powers.length > 0,
                 "both NextValidators and NextValidatorPowers should not be empty"
             );
+            require(vals.length == produceAmountList.length && vals.length == powers.length, "incorrect length");
 
             _createEpochValidators(curEpochIdx + 1, height, vals, powers);
+            _perEpochReward(epochs[_position].curEpochVals, produceAmountList);
         }
 
         headHashes[height] = headHash;
@@ -72,7 +76,6 @@ contract W3qProver is LightClient, IW3qProver {
             latestBlockHeight = height;
         }
 
-        _perEpochReward(epochs[_position].curEpochVals, epochs[_position].curVotingPowers);
     }
 
     function proveTx(uint256 height, IW3qProver.Proof memory proof) external view override returns (bool) {
