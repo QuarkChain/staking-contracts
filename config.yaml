@@ -1,0 +1,30 @@
+Staking:
+  address: ""
+  owner: ""
+  params:
+    w3qAddress: "0xdba4b1aEeD67C2d63B54BA7c0650D47d4c05f94d"
+    proposalDeposit: 1000
+    votingPeriod: 0
+    unbondingPerod: 3000
+    maxBondedValidators: 5
+    minValidatorTokens: "1000000000000000000"
+    minSelfDelegation: "1000000000000000000"
+    advanceNoticePeriod: 1000
+    validatorBondInterval: 1
+    maxSlashFactor: 1000
+W3Q:
+  address: "0xdba4b1aEeD67C2d63B54BA7c0650D47d4c05f94d"
+  owner: ""
+  params:
+    name: Web3Q Native Token
+    symbol: W3Q
+LightClient:
+  address: ""
+  owner: ""
+  params:
+    staking: ""
+    epochPerid: 1000
+    validators: []
+    votePowers: []
+    epochIdx: 1
+    genesisBlockHash: "0x0000000000000000000000000000000000000000000000000000000000000000"
