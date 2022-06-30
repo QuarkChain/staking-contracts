@@ -110,10 +110,7 @@ describe("light client test", function () {
     let b32Empty = "0x0000000000000000000000000000000000000000000000000000000000000000"
     await light_client_test.initEpoch(vals,powers,0,b32Empty)
 
-    let produces = []
-    for (let j=0;j<vals.length;j++){
-      produces.push[1]
-    }
+    let produces = powers
     await w3q.connect(owner).transferOwnership(light_client_test.address)
     await light_client_test.epochReward(produces);
 

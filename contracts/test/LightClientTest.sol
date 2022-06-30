@@ -12,8 +12,8 @@ contract LightClientTest is LightClient {
         address _w3qErc20
     ) LightClient(_epochPeriod, _staking, _w3qErc20) {}
 
-    function epochReward() public {
+    function epochReward(uint256[] memory produces) public {
         uint256 position = _epochPosition(curEpochIdx);
-        _perEpochReward(epochs[position].curEpochVals, epochs[position].curVotingPowers);
+        _perEpochReward(epochs[position].curEpochVals, produces);
     }
 }
