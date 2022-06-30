@@ -335,27 +335,19 @@ library BlockDecoder {
         cs.Signature = property(list, 3).toBytes();
     }
 
-    function decodeExtra(bytes memory headerRLPBytes) internal pure returns (uint256[] memory) {
+    function decodeExtra(bytes memory headerRLPBytes) internal pure returns (uint256[] memory arr) {
         RLPReader.RLPItem[] memory list = decodeToHeaderList(headerRLPBytes);
         RLPReader.RLPItem memory item = list[uint8(HeaderProperty.Extra)];
-        bytes memory encodeData = item.toBytes();
-        bytes memory rlpArrayData = splitExtraData(encodeData);
-        uint256[] memory arr = rlpArrayData.toRlpItem().toUintArray();
+        bytes memory b = item.toBytes();
+        arr = b.toRlpItem().toUintArray();
         return arr;
     }
 
-    function splitExtraData(bytes memory data)public pure returns(bytes memory res){
-        // Get the first four bytes of the data field as len
-        uint256 dLen;
-        assembly {
-            dLen := mload(add(data,0x20))
-        }
-        dLen = dLen >> 224;
-        res = new bytes(dLen);
-
-        uint256 dataptr = dataPtr(data);
-        uint256 resptr = dataPtr(res);
-        copy(dataptr+4, resptr, dLen);
+    function decodeRLPExtra(bytes memory headerRLPBytes) internal pure returns (bytes memory) {
+        RLPReader.RLPItem[] memory list = decodeToHeaderList(headerRLPBytes);
+        RLPReader.RLPItem memory item = list[uint8(HeaderProperty.Extra)];
+        bytes memory res = item.toRlpBytes();
+        return res;
     }
 
     function decodeNextValidators(bytes memory headerRLPBytes) internal pure returns (address[] memory) {
