@@ -2,21 +2,17 @@ const { expect } = require("chai");
 const { sign } = require("crypto");
 const { BigNumber } = require("ethers");
 const { ethers, web3 } = require("hardhat");
-// const {ethers} = require("ethers")
+const {Config} = require("./config/config")
 
 let main = async function () {
   
-  let epochPeriod = 10000;
+  let globalConfig = new Config('./config.yaml')
+  let deployParams = globalConfig.getStakingParams()
+
   let w3qUint = BigNumber.from("1000000000000000000")
   let ETH = BigNumber.from("300000000000000000")
   let mintAmount = w3qUint.mul(1000)
 
-  let _unbondingPeriod = 3 * epochPeriod;
-  let _maxBondedValidators = 5
-  let _minValidatorTokens = w3qUint
-  let _minSelfDelegation = w3qUint
-  let _validatorBondInterval = 1
-  
   let signers = await ethers.getSigners();
   let owner = signers[0]
   let vals = signers.slice(1,signers.length)
@@ -28,18 +24,19 @@ let main = async function () {
 
   let factory = await ethers.getContractFactory("TestStaking");
   let staking = await factory.connect(owner).deploy(
-    w3q.address,
-    10000, //_proposalDeposit
-    10000, //_votingPeriod
-    _unbondingPeriod,
-    _maxBondedValidators,
-    _minValidatorTokens,
-    _minSelfDelegation,
-    10000, //_advanceNoticePeriod
-    _validatorBondInterval,
-    10000 //_maxSlashFactor
+    deployParams.w3qAddress,
+    deployParams.proposalDeposit, 
+    deployParams.votingPeriod, 
+    deployParams.unbondingPerod,
+    deployParams.maxBondedValidators,
+    deployParams.minValidatorTokens,
+    deployParams.minSelfDelegation,
+    deployParams.advanceNoticePeriod,
+    deployParams.validatorBondInterval,
+    deployParams.maxSlashFactor
   );
   await staking.deployed();
+  
 
   for (let i = 0;i<4;i++){
     console.log("_______________[",i,"] validators Bonding__________________")
@@ -66,7 +63,9 @@ let main = async function () {
   console.log("_________________________________Contract Info____________________________________")
   console.log("w3q:",w3q.address)
   console.log("staking:",staking.address)
-
+  globalConfig.setStakingAddress(staking.address)
+  globalConfig.setStakingOwner(owner.address)
+  globalConfig.save('./config.yaml')
 };
 
 main().catch((error) => {
