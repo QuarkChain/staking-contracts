@@ -40,9 +40,7 @@ describe("decode block test", function () {
     }
 
     let head = new Header(vals, powers);
-    console.log(head.Extra);
     head.genExtra(produces);
-    console.log(head.Extra);
     let headrlp = genHeadRlp(head);
 
     let res1 = await db.DecodeExtraTest(headrlp);
