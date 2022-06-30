@@ -163,7 +163,7 @@ function check(f, got, want) {
       await signVotes(signer_wallets, head_commit);
       let commit_bytes = head_commit.genCommitRlp();
   
-      await lishtclient_instance.submitHead(list[i].Number, genHeadRlp(list[i]), commit_bytes);
+      await lishtclient_instance.submitHead(list[i].Number, genHeadRlp(list[i]), commit_bytes,true);
       let exist = await lishtclient_instance.blockExist(list[i].Number);
       check("BLOCK_EXIST", exist, true);
     }
@@ -224,7 +224,7 @@ function check(f, got, want) {
       await signVotes(prev_epoch_wallets, commit2);
       let commitBytes2 = commit2.genCommitRlp();
   
-      let tx2 = await instance.submitHead(epochHeight2.toHexString(), rlpHeader2, commitBytes2);
+      let tx2 = await instance.submitHead(epochHeight2.toHexString(), rlpHeader2, commitBytes2,true);
       let receipt2 = await tx2.wait();
       console.log("EPOCHID:", epochIdx, " VALNUM:", valNum, " GasUsed:", receipt2.gasUsed.toString());
   

@@ -36,7 +36,8 @@ contract W3qProver is LightClient, IW3qProver {
     function submitHead(
         uint256 height,
         bytes memory headBytes,
-        bytes memory commitBytes
+        bytes memory commitBytes,
+        bool lookByIndex
     ) public override(IW3qProver, LightClient) {
         require(!blockExist(height), "block exist");
 
@@ -48,7 +49,8 @@ contract W3qProver is LightClient, IW3qProver {
             headBytes,
             commitBytes,
             epochs[_position].curEpochVals,
-            epochs[_position].curVotingPowers
+            epochs[_position].curVotingPowers,
+            lookByIndex
         );
 
         require(decodeHeight == height, "inconsistent height");

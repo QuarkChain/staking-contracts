@@ -53,23 +53,23 @@ contract LightClient is ILightClient, Ownable {
      */
     function submitHead(
         uint256,
-        bytes memory _epochHeaderBytes,
+        bytes memory epochHeaderBytes,
         bytes memory commitBytes,
         bool lookByIndex
     ) public virtual override {
         //1. verify epoch header
         uint256 position = _epochPosition(curEpochIdx);
         (uint256 height, , ) = BlockDecoder.verifyHeader(
-            _epochHeaderBytes,
+            epochHeaderBytes,
             commitBytes,
             epochs[position].curEpochVals,
             epochs[position].curVotingPowers,
             lookByIndex
         );
 
-        address[] memory vals = _epochHeaderBytes.decodeNextValidators();
-        uint256[] memory powers = _epochHeaderBytes.decodeNextValidatorPowers();
-        uint256[] memory produceAmountList = _epochHeaderBytes.decodeExtra();
+        address[] memory vals = epochHeaderBytes.decodeNextValidators();
+        uint256[] memory powers = epochHeaderBytes.decodeNextValidatorPowers();
+        uint256[] memory produceAmountList = epochHeaderBytes.decodeExtra();
 
         require(
             vals.length > 0 && powers.length > 0,

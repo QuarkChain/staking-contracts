@@ -15,7 +15,8 @@ interface IW3qProver {
     function submitHead(
         uint256 height,
         bytes memory epochHeaderBytes,
-        bytes memory commitBytes
+        bytes memory commitBytes,
+        bool lookByIndex 
     ) external;
 
     function proveTx(uint256 height, Proof memory proof) external view returns (bool);
