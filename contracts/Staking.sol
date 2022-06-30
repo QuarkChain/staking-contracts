@@ -618,6 +618,18 @@ contract Staking is Pauser, Whitelist {
             );
     }
 
+    function getValidatorShare(address _valAddr) public view returns (uint256) {
+        return validators[_valAddr].shares;
+    }
+
+    function getDelegatorShare(address _valAddr, address _delAddr) public view returns (uint256 _share) {
+        return validators[_valAddr].delegators[_delAddr].shares;
+    }
+
+    function getDelegatorAddrs(address _valAddr) public view returns (address[] memory) {
+        return validators[_valAddr].delAddrs;
+    }
+
     /**
      * @notice Get the value of a specific uint parameter
      * @param _name the key of this parameter

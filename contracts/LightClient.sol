@@ -1,9 +1,13 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 pragma solidity ^0.8.0;
 
 import "./lib/BlockDecoder.sol";
+import "./interfaces/IW3qERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IStaking.sol";
 import "./interfaces/ILightClient.sol";
+import {DataTypes as dt} from "./lib/DataTypes.sol";
 
 contract LightClient is ILightClient, Ownable {
     using BlockDecoder for bytes;
@@ -19,10 +23,16 @@ contract LightClient is ILightClient, Ownable {
     uint256 public override epochPeriod;
 
     IStaking public staking;
+    IW3qERC20 public w3qErc20;
 
-    constructor(uint256 _epochPeriod, address _staking) {
+    constructor(
+        uint256 _epochPeriod,
+        address _staking,
+        address _w3qErc20
+    ) {
         epochPeriod = _epochPeriod;
         staking = IStaking(_staking);
+        w3qErc20 = IW3qERC20(_w3qErc20);
     }
 
     function _epochPosition(uint256 _epochIdx) internal pure returns (uint256) {
@@ -39,32 +49,37 @@ contract LightClient is ILightClient, Ownable {
     }
 
     /**
-     * Create validator set for an epoch
+     * Submit epoch head
      */
     function submitHead(
-        bytes memory _epochHeaderBytes,
+        uint256,
+        bytes memory epochHeaderBytes,
         bytes memory commitBytes,
         bool lookByIndex
     ) public virtual override {
         //1. verify epoch header
         uint256 position = _epochPosition(curEpochIdx);
         (uint256 height, , ) = BlockDecoder.verifyHeader(
-            _epochHeaderBytes,
+            epochHeaderBytes,
             commitBytes,
             epochs[position].curEpochVals,
             epochs[position].curVotingPowers,
             lookByIndex
         );
 
-        address[] memory vals = _epochHeaderBytes.decodeNextValidators();
-        uint256[] memory powers = _epochHeaderBytes.decodeNextValidatorPowers();
+        address[] memory vals = epochHeaderBytes.decodeNextValidators();
+        uint256[] memory powers = epochHeaderBytes.decodeNextValidatorPowers();
+        uint256[] memory produceAmountList = epochHeaderBytes.decodeExtra();
+
         require(
             vals.length > 0 && powers.length > 0,
             "both NextValidators and NextValidatorPowers should not be empty"
         );
-
+        require(vals.length == produceAmountList.length && vals.length == powers.length, "incorrect length");
         require(curEpochHeight + epochPeriod == height, "incorrect height");
+
         _createEpochValidators(curEpochIdx + 1, height, vals, powers);
+        _perEpochReward(epochs[position].curEpochVals, produceAmountList);
     }
 
     /**
@@ -84,12 +99,63 @@ contract LightClient is ILightClient, Ownable {
         require(_epochSigners.length == _epochVotingPowers.length, "incorrect length");
 
         uint256 position = _epochPosition(_epochIdx);
+
         curEpochIdx = _epochIdx;
         curEpochHeight = _epochHeight;
         epochs[position].curEpochVals = _epochSigners;
         epochs[position].curVotingPowers = _epochVotingPowers;
+    }
 
-        // TODO: add rewards to validators
+    function _totalProduceBlock(uint256[] memory produceBlocks) internal pure returns (uint256 total) {
+        for (uint256 i = 0; i < produceBlocks.length; i++) {
+            total += produceBlocks[i];
+        }
+    }
+
+    function _validatorRewardShare(
+        uint256 epochReward,
+        uint256 produceAmount,
+        uint256 totalProduceAmount
+    ) internal pure returns (uint256) {
+        return (epochReward * produceAmount) / totalProduceAmount;
+    }
+
+    function _perEpochReward(address[] memory rewardVals, uint256[] memory produceAmountList) internal {
+        uint256 epochReward = w3qErc20.perEpochReward();
+
+        // Calculate the amount of tokens to reward validator and delegators
+        for (uint256 i = 0; i < rewardVals.length; i++) {
+            address valAddr = rewardVals[i];
+
+            uint256 valShares = staking.getValidatorShare(valAddr);
+            address[] memory delAddrs = staking.getDelegatorAddrs(valAddr);
+
+            uint256 totalRewardAmount = _validatorRewardShare(
+                epochReward,
+                produceAmountList[i],
+                _totalProduceBlock(produceAmountList)
+            );
+            uint256 valRewardAmount = totalRewardAmount;
+
+            for (uint256 j = 0; j < delAddrs.length; j++) {
+                address delAddr = delAddrs[j];
+                uint256 delShare = staking.getDelegatorShare(valAddr, delAddr);
+                uint256 delRewardAmount = (totalRewardAmount * delShare) / valShares;
+
+                // reward delegator
+                w3qErc20.mint(delAddr, delRewardAmount);
+                valRewardAmount -= delRewardAmount;
+            }
+
+            // reward validator
+            w3qErc20.mint(valAddr, valRewardAmount);
+        }
+    }
+
+    function totalVotePowers(uint256[] memory votePowers) internal pure returns (uint256 sum) {
+        for (uint256 i = 0; i < votePowers.length; i++) {
+            sum += votePowers[i];
+        }
     }
 
     function getCurrentEpoch()
@@ -120,5 +186,58 @@ contract LightClient is ILightClient, Ownable {
 
     function proposedValidators() external view override returns (address[] memory, uint256[] memory) {
         return staking.proposedValidators();
+    }
+
+    function getEpochIdx(uint256 height) public view override returns (uint256) {
+        uint256 _epochPeriod = epochPeriod;
+        uint256 _tmp = curEpochHeight + _epochPeriod;
+        require(height <= _tmp, "height too high");
+        uint256 _distance = (_tmp - height) / _epochPeriod;
+        require(_distance < TOTAL_EPOCH, "out of height range");
+        return curEpochIdx - _distance;
+    }
+
+    function checkHeightRange(uint256 height) public view override returns (bool) {
+        (uint256 min, uint256 max) = heightRange();
+        if (height >= min && height <= max) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    function minEpochIdx() public view override returns (uint256) {
+        if (curEpochIdx >= TOTAL_EPOCH) {
+            return curEpochIdx - TOTAL_EPOCH + 1;
+        }
+        return 0;
+    }
+
+    function heightRange() public view override returns (uint256 min, uint256 max) {
+        min = _minHeight();
+        max = _maxHeight();
+        // when the curEpochHeight is 10000 and TOTAL_EPOCH = 2,
+        // the range of the block ,can be verified by contract, is [1,20000]
+
+        return (min, max);
+    }
+
+    function _minHeight() internal view returns (uint256) {
+        uint256 _curEpochHeight = curEpochHeight;
+        uint256 _epochPeriod = epochPeriod;
+
+        uint256 _range = (TOTAL_EPOCH - 1) * _epochPeriod;
+        uint256 minHeight = 0;
+        if (_curEpochHeight >= _range) {
+            minHeight = _curEpochHeight - _range + 1;
+        }
+        return minHeight;
+    }
+
+    function _maxHeight() internal view returns (uint256) {
+        uint256 _curEpochHeight = curEpochHeight;
+        uint256 _epochPeriod = epochPeriod;
+
+        return _curEpochHeight + _epochPeriod;
     }
 }
