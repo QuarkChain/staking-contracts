@@ -53,28 +53,33 @@ contract LightClient is ILightClient, Ownable {
      */
     function submitHead(
         uint256,
-        bytes memory _epochHeaderBytes,
-        bytes memory commitBytes
+        bytes memory epochHeaderBytes,
+        bytes memory commitBytes,
+        bool lookByIndex
     ) public virtual override {
         //1. verify epoch header
         uint256 position = _epochPosition(curEpochIdx);
         (uint256 height, , ) = BlockDecoder.verifyHeader(
-            _epochHeaderBytes,
+            epochHeaderBytes,
             commitBytes,
             epochs[position].curEpochVals,
-            epochs[position].curVotingPowers
+            epochs[position].curVotingPowers,
+            lookByIndex
         );
 
-        address[] memory vals = _epochHeaderBytes.decodeNextValidators();
-        uint256[] memory powers = _epochHeaderBytes.decodeNextValidatorPowers();
+        address[] memory vals = epochHeaderBytes.decodeNextValidators();
+        uint256[] memory powers = epochHeaderBytes.decodeNextValidatorPowers();
+        uint256[] memory produceAmountList = epochHeaderBytes.decodeExtra();
+
         require(
             vals.length > 0 && powers.length > 0,
             "both NextValidators and NextValidatorPowers should not be empty"
         );
-
+        require(vals.length == produceAmountList.length && vals.length == powers.length, "incorrect length");
         require(curEpochHeight + epochPeriod == height, "incorrect height");
+
         _createEpochValidators(curEpochIdx + 1, height, vals, powers);
-        _perEpochReward(epochs[position].curEpochVals, epochs[position].curVotingPowers);
+        _perEpochReward(epochs[position].curEpochVals, produceAmountList);
     }
 
     /**
@@ -94,7 +99,6 @@ contract LightClient is ILightClient, Ownable {
         require(_epochSigners.length == _epochVotingPowers.length, "incorrect length");
 
         uint256 position = _epochPosition(_epochIdx);
-        // TODO: add rewards to validators
 
         curEpochIdx = _epochIdx;
         curEpochHeight = _epochHeight;
@@ -102,8 +106,21 @@ contract LightClient is ILightClient, Ownable {
         epochs[position].curVotingPowers = _epochVotingPowers;
     }
 
-    function _perEpochReward(address[] memory rewardVals, uint256[] memory votePowers) internal {
-        uint256 totalPower = totalVotePowers(votePowers);
+    function _totalProduceBlock(uint256[] memory produceBlocks) internal pure returns (uint256 total) {
+        for (uint256 i = 0; i < produceBlocks.length; i++) {
+            total += produceBlocks[i];
+        }
+    }
+
+    function _validatorRewardShare(
+        uint256 epochReward,
+        uint256 produceAmount,
+        uint256 totalProduceAmount
+    ) internal pure returns (uint256) {
+        return (epochReward * produceAmount) / totalProduceAmount;
+    }
+
+    function _perEpochReward(address[] memory rewardVals, uint256[] memory produceAmountList) internal {
         uint256 epochReward = w3qErc20.perEpochReward();
 
         // Calculate the amount of tokens to reward validator and delegators
@@ -113,7 +130,11 @@ contract LightClient is ILightClient, Ownable {
             uint256 valShares = staking.getValidatorShare(valAddr);
             address[] memory delAddrs = staking.getDelegatorAddrs(valAddr);
 
-            uint256 totalRewardAmount = (epochReward * votePowers[i]) / totalPower;
+            uint256 totalRewardAmount = _validatorRewardShare(
+                epochReward,
+                produceAmountList[i],
+                _totalProduceBlock(produceAmountList)
+            );
             uint256 valRewardAmount = totalRewardAmount;
 
             for (uint256 j = 0; j < delAddrs.length; j++) {

@@ -24,6 +24,14 @@ contract BlockDecoderTest {
         return BlockDecoder.decodeValidatorData(rlpbytes.decodeToHeaderList());
     }
 
+    function DecodeExtraTest(bytes memory rlpbytes) public pure returns (uint256[] memory) {
+        return BlockDecoder.decodeExtra(rlpbytes);
+    }
+
+     function DecodeRLPExtraTest(bytes memory rlpbytes) public pure returns (bytes memory) {
+        return BlockDecoder.decodeRLPExtra(rlpbytes);
+    }
+
     function DecodeNextValidatorsTest(bytes memory rlpbytes) public pure returns (address[] memory) {
         return BlockDecoder.decodeNextValidators(rlpbytes);
     }
@@ -79,7 +87,7 @@ contract BlockDecoderTest {
             BlockDecoder.HeadCore memory
         )
     {
-        return BlockDecoder.verifyHeader(headerRlpBytes, commitRlpBytes, validators, votePowers);
+        return BlockDecoder.verifyHeader(headerRlpBytes, commitRlpBytes, validators, votePowers, false);
     }
 
     function voteSignBytesTest(
