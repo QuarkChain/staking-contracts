@@ -7,7 +7,7 @@ const {Config} = require("./config/config")
 let epochPeriod = 1000;
 async function main() {
 
-  let globalConfig = new Config('./config.yaml')
+  let globalConfig = new Config()
   let deployParams = globalConfig.getLightClientParams()
   
   let staking_addr = deployParams.staking;
@@ -49,7 +49,7 @@ async function main() {
   globalConfig.setLightClientParams(deployParams)
   globalConfig.LightClient.address = lc.address
   globalConfig.LightClient.owner = owner.address
-  globalConfig.save('./config.yaml')
+  globalConfig.save()
 
 };
 

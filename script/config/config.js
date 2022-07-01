@@ -5,11 +5,13 @@ const fs = require("fs");
 
 class Config{
 
-    constructor(path){
+    constructor(){
         try {
+            let path = "./deploy_config.yaml"
             let context = fs.readFileSync(path,'utf-8');
             let config = YAML.parse(context);
             console.log(config)
+            this.FilePath = path
             this.Staking = config.Staking
             this.W3Q = config.W3Q
             this.LightClient = config.LightClient   
@@ -54,9 +56,9 @@ class Config{
         this.LightClient.params = params
     }
 
-    save(path) {
+    save() {
         try {
-            fs.writeFileSync(path,YAML.stringify(this))
+            fs.writeFileSync(this.FilePath,YAML.stringify(this))
         } catch (error) {
             console.error(error)
         }

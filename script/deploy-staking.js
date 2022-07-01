@@ -6,7 +6,7 @@ const {Config} = require("./config/config")
 
 let main = async function () {
   
-  let globalConfig = new Config('./config.yaml')
+  let globalConfig = new Config()
   let deployParams = globalConfig.getStakingParams()
 
   let w3qUint = BigNumber.from("1000000000000000000")
@@ -65,7 +65,7 @@ let main = async function () {
   console.log("staking:",staking.address)
   globalConfig.setStakingAddress(staking.address)
   globalConfig.setStakingOwner(owner.address)
-  globalConfig.save('./config.yaml')
+  globalConfig.save()
 };
 
 main().catch((error) => {

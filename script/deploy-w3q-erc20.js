@@ -10,15 +10,15 @@ let main = async function () {
 
   console.log(signers)
 
-  let preConfig = new Config('./config.yaml')
+  let preConfig = new Config()
   let w3qcfg = preConfig.getW3Q()
-  let erc20Factory = await ethers.getContractFactory("W3qERC20");
+  let erc20Factory = await ethers.getContractFactory("W3qERC20Test");
   let w3q = await erc20Factory.deploy(w3qcfg.params.name,w3qcfg.params.symbol);
   await w3q.deployed()
 
   w3qcfg.address = w3q.address
   preConfig.setW3Q(w3qcfg)
-  preConfig.save('./config.yaml')
+  preConfig.save()
 }
 
 main().catch((error) => {
