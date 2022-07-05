@@ -28,6 +28,10 @@ class Config{
         return this.W3Q
     }
 
+    getW3QAddress(){
+        return this.W3Q.address
+    }
+
 
 
     getStakingParams() {

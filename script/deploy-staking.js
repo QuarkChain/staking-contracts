@@ -18,13 +18,22 @@ let main = async function () {
   let vals = signers.slice(1,signers.length)
   console.log("get from config:",owner.address,vals.length)
 
-  let erc20Factory = await ethers.getContractFactory("W3qERC20");
-  let w3q = await erc20Factory.connect(owner).deploy("Web3Q Native Token","W3Q");
+  /*
+      deploy w3q ERC20 contract
+  */
+  let w3qcfg = globalConfig.getW3Q()
+  let erc20Factory = await ethers.getContractFactory("W3qERC20Test");
+  let w3q = await erc20Factory.deploy(w3qcfg.params.name,w3qcfg.params.symbol);
   await w3q.deployed()
+  w3qcfg.address = w3q.address
+  globalConfig.setW3Q(w3qcfg)
 
+  /**
+   * deploy staking contract
+   */
   let factory = await ethers.getContractFactory("TestStaking");
   let staking = await factory.connect(owner).deploy(
-    deployParams.w3qAddress,
+    w3q.address,
     deployParams.proposalDeposit, 
     deployParams.votingPeriod, 
     deployParams.unbondingPerod,
@@ -48,7 +57,7 @@ let main = async function () {
 
     console.log("initializeValidator()....")
     // let gasEst = staking.estimateGas.initializeValidator(vals[i].address,_minSelfDelegation,0)
-    await staking.connect(vals[i]).initializeValidator(vals[i].address,_minSelfDelegation,0,{gasLimit:600000});
+    await staking.connect(vals[i]).initializeValidator(vals[i].address,deployParams.minSelfDelegation,0,{gasLimit:600000});
     await staking.connect(vals[i]).delegate(vals[i].address,w3qUint.mul(10),{gasLimit:300000});
     console.log("bondValidator()....")
     await staking.connect(vals[i]).bondValidator({gasLimit:300000});

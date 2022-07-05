@@ -2,10 +2,12 @@ const { expect } = require("chai");
 const { sign } = require("crypto");
 const { BigNumber } = require("ethers");
 const { ethers, web3 } = require("hardhat");
-// const {ethers} = require("ethers")
+const {Config} = require("./config/config")
 
 let main = async function () {
-    let staking_addr = "0x3be5d916bA636f0E8291cE587F940Bb609acf91c";
+
+  let globalConfig = new Config()
+  let staking_addr = globalConfig.Staking.address 
   let staking = await ethers.getContractAt("TestStaking",staking_addr);
   let vals
   let powers
