@@ -66,6 +66,22 @@ function check(f, got, want) {
         let data = rlpdata(amountList)
         this.Extra = data
     }
+
+    genExtraWithPrefix(amountList,HeaderNumber){
+      let data = rlpdata(amountList)
+      data = cutHexPrefix(data)
+      let HeaderNumberStr = "HeaderNumber"
+      let hexStr = web3.utils.asciiToHex(HeaderNumberStr)
+      // eight byte headerNumber
+      let numberStr = BigNumber.from(HeaderNumber).toHexString();
+      numberStr = cutHexPrefix(numberStr)
+      if (numberStr.length <16){
+        let zeroPrefix = "0000000000000000"
+        zeroPrefix = zeroPrefix.slice(0,16 - numberStr.length)
+        numberStr = zeroPrefix.concat(numberStr)
+      }
+      this.Extra = hexStr.concat(numberStr,data)
+    }
   }
 
   function cutHexPrefix(str){

@@ -45,6 +45,10 @@ describe("decode block test", function () {
 
     let res1 = await db.DecodeExtraTest(headrlp);
     checkArray("CHECK_PRODUCES", res1, produces);
+    
+    head.genExtraWithPrefix(produces,head.Number)
+    let res2 = await db.DecodeExtraTest(headrlp);
+    checkArray("CHECK_PRODUCES", res2, produces);
   });
 
   it("decode Header", async function () {
