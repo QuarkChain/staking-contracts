@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "./RLPReader.sol";
 import "./RLPEncode.sol";
+import "./Memory.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 library BlockDecoder {
@@ -10,6 +11,9 @@ library BlockDecoder {
     using RLPReader for RLPReader.Iterator;
     using RLPReader for bytes;
     using Strings for uint256;
+
+    // Size of a word, in bytes.
+    uint256 internal constant WORD_SIZE = 32;
 
     struct HeadCore {
         // bytes32 HeadHash;
@@ -378,6 +382,37 @@ library BlockDecoder {
         cs.ValidatorAddress = property(list, 1).toAddress();
         cs.TimestampMs = uint64(property(list, 2).toUint());
         cs.Signature = property(list, 3).toBytes();
+    }
+
+    bytes constant EXTRA_PREFIX = "HeaderNumber";
+    uint8 constant HEADER_NUMBER_LEN = 8;
+
+    // the Extra Data with two format:
+    // first: rlp(produce list)
+    // second: "headerNumber",headerNumber[8byte],rlp(produce list)
+    function decodeExtra(bytes memory headerRLPBytes) internal pure returns (uint256[] memory) {
+        RLPReader.RLPItem[] memory list = decodeToHeaderList(headerRLPBytes);
+        RLPReader.RLPItem memory item = list[uint8(HeaderProperty.Extra)];
+        bytes memory extraData = item.toBytes();
+        
+        bytes memory prefix = EXTRA_PREFIX;
+        if (Memory.equals(Memory.dataPtr(prefix), Memory.dataPtr(extraData), EXTRA_PREFIX.length)) {
+            uint prefixLen = EXTRA_PREFIX.length + HEADER_NUMBER_LEN;
+            require(extraData.length > prefixLen,"data too short");
+            uint stateLen = extraData.length - prefixLen;
+            bytes memory state = new bytes(prefixLen);
+            Memory.copy(Memory.dataPtr(state),Memory.dataPtr(extraData)+prefixLen,stateLen);
+            return state.toRlpItem().toUintArray();
+        }
+        return extraData.toRlpItem().toUintArray();
+    }
+
+    function decodeRLPExtra(bytes memory headerRLPBytes) internal pure returns (bytes memory) {
+        RLPReader.RLPItem[] memory list = decodeToHeaderList(headerRLPBytes);
+        RLPReader.RLPItem memory item = list[uint8(HeaderProperty.Extra)];
+        bytes memory res = item.toRlpBytes();
+        
+        return res;
     }
 
     function decodeNextValidators(bytes memory headerRLPBytes) internal pure returns (address[] memory) {
