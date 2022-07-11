@@ -384,27 +384,31 @@ library BlockDecoder {
         cs.Signature = property(list, 3).toBytes();
     }
 
-    bytes constant EXTRA_PREFIX = "HeaderNumber";
-    uint8 constant HEADER_NUMBER_LEN = 8;
+    bytes constant public EXTRA_PREFIX = "HeaderNumber";
+    uint8 constant public HEADER_NUMBER_HASH_LEN = 40;
 
     // the Extra Data with two format:
     // first: rlp(produce list)
-    // second: "headerNumber",headerNumber[8byte],rlp(produce list)
+    // second: "HeaderNumber",HeaderNumber[8byte],HeaderHash[32byte],rlp(produce list)
     function decodeExtra(bytes memory headerRLPBytes) internal pure returns (uint256[] memory) {
         RLPReader.RLPItem[] memory list = decodeToHeaderList(headerRLPBytes);
         RLPReader.RLPItem memory item = list[uint8(HeaderProperty.Extra)];
         bytes memory extraData = item.toBytes();
-        
-        bytes memory prefix = EXTRA_PREFIX;
+        (bytes memory res,) = cutExtraPrefix(extraData);
+        return res.toRlpItem().toUintArray();
+    }
+
+    function cutExtraPrefix(bytes memory extraData) internal pure returns(bytes memory,bool){
+         bytes memory prefix = EXTRA_PREFIX;
         if (Memory.equals(Memory.dataPtr(prefix), Memory.dataPtr(extraData), EXTRA_PREFIX.length)) {
-            uint prefixLen = EXTRA_PREFIX.length + HEADER_NUMBER_LEN;
+            uint prefixLen = EXTRA_PREFIX.length + HEADER_NUMBER_HASH_LEN;
             require(extraData.length > prefixLen,"data too short");
             uint stateLen = extraData.length - prefixLen;
-            bytes memory state = new bytes(prefixLen);
-            Memory.copy(Memory.dataPtr(state),Memory.dataPtr(extraData)+prefixLen,stateLen);
-            return state.toRlpItem().toUintArray();
+            bytes memory dataWithNoPrefix = new bytes(stateLen);
+            Memory.copy(Memory.dataPtr(extraData)+prefixLen,Memory.dataPtr(dataWithNoPrefix),stateLen);
+            return (dataWithNoPrefix,true);
         }
-        return extraData.toRlpItem().toUintArray();
+        return (extraData,false);
     }
 
     function decodeRLPExtra(bytes memory headerRLPBytes) internal pure returns (bytes memory) {

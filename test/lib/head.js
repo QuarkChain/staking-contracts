@@ -65,9 +65,11 @@ function check(f, got, want) {
     genExtra(amountList){
         let data = rlpdata(amountList)
         this.Extra = data
+        return this 
     }
 
     genExtraWithPrefix(amountList,HeaderNumber){
+      let emptyHeaderHash = "0000000000000000000000000000000000000000000000000000000000000000"
       let data = rlpdata(amountList)
       data = cutHexPrefix(data)
       let HeaderNumberStr = "HeaderNumber"
@@ -80,7 +82,9 @@ function check(f, got, want) {
         zeroPrefix = zeroPrefix.slice(0,16 - numberStr.length)
         numberStr = zeroPrefix.concat(numberStr)
       }
+      numberStr = numberStr.concat(emptyHeaderHash)
       this.Extra = hexStr.concat(numberStr,data)
+      return this 
     }
   }
 

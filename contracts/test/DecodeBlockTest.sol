@@ -32,6 +32,10 @@ contract BlockDecoderTest {
         return BlockDecoder.decodeRLPExtra(rlpbytes);
     }
 
+    function CutExtraPrefixTest(bytes memory extra) public pure returns (bytes memory,bool) {
+        return BlockDecoder.cutExtraPrefix(extra);
+    }
+
     function DecodeNextValidatorsTest(bytes memory rlpbytes) public pure returns (address[] memory) {
         return BlockDecoder.decodeNextValidators(rlpbytes);
     }
