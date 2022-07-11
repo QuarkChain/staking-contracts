@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers, web3 } = require("hardhat");
-const {  rlp , bufferToHex } = require("ethereumjs-util");
-const {buildReceiptProof , getReceiptBytes , getFullBlockByHash } = require("@tomfrench/matic-proofs")
+const { rlp, bufferToHex } = require("ethereumjs-util");
+const { buildReceiptProof, getReceiptBytes, getFullBlockByHash } = require("@tomfrench/matic-proofs");
 const { hexConcat } = require("@ethersproject/bytes");
 
 function check(f, got, want) {
@@ -14,8 +14,8 @@ function checkArray(f, got, want) {
   });
 }
 
-function hexToBuffer(value){
-   return Buffer.from(value.slice(2),'hex')
+function hexToBuffer(value) {
+  return Buffer.from(value.slice(2), "hex");
 }
 
 describe("MerklePatriciaProof With Receipt Test", async function () {
@@ -48,66 +48,63 @@ describe("MerklePatriciaProof With Receipt Test", async function () {
     await mpt.deployed();
   });
 
-
-  it("Verify MerklePatriciaProof Test",async function(){
-
+  it("Verify MerklePatriciaProof Test", async function () {
     let fac = await ethers.getContractFactory("ReceiptTest");
     let receiptTest = await fac.deploy();
     await receiptTest.deployed();
 
     let tx = await receiptTest.set(1);
-    
-    let receiptProof = await buildReceiptProof(ethers.provider,tx.hash);
+
+    let receiptProof = await buildReceiptProof(ethers.provider, tx.hash);
 
     const path = hexConcat(["0x00", bufferToHex(rlp.encode(receiptProof.receipt.transactionIndex))]);
-    const rlpParentNodes = bufferToHex(rlp.encode(receiptProof.parentNodes.map(node => rlp.decode(hexToBuffer(node)))));
+    const rlpParentNodes = bufferToHex(
+      rlp.encode(receiptProof.parentNodes.map((node) => rlp.decode(hexToBuffer(node))))
+    );
 
-    let result = await mpt.verify(getReceiptBytes(receiptProof.receipt), path, rlpParentNodes, receiptProof.root)
+    let result = await mpt.verify(getReceiptBytes(receiptProof.receipt), path, rlpParentNodes, receiptProof.root);
 
-    expect(result).to.eq(true)
-  })
+    expect(result).to.eq(true);
+  });
 
-  
-
-  it("decode Receipt onChain",async function(){
-
+  it("decode Receipt onChain", async function () {
     let fac = await ethers.getContractFactory("ReceiptTest");
     let receiptTest = await fac.deploy();
     await receiptTest.deployed();
 
     let tx = await receiptTest.set(1);
-    
-    let receiptProof = await buildReceiptProof(ethers.provider,tx.hash);
+
+    let receiptProof = await buildReceiptProof(ethers.provider, tx.hash);
 
     const path = hexConcat(["0x00", bufferToHex(rlp.encode(receiptProof.receipt.transactionIndex))]);
-    const rlpParentNodes = bufferToHex(rlp.encode(receiptProof.parentNodes.map(node => rlp.decode(hexToBuffer(node)))));
+    const rlpParentNodes = bufferToHex(
+      rlp.encode(receiptProof.parentNodes.map((node) => rlp.decode(hexToBuffer(node))))
+    );
 
-    let result = await mpt.verify(getReceiptBytes(receiptProof.receipt), path, rlpParentNodes, receiptProof.root)
+    let result = await mpt.verify(getReceiptBytes(receiptProof.receipt), path, rlpParentNodes, receiptProof.root);
 
-    let receiptBytes =await mpt.decodeReceipt(getReceiptBytes(receiptProof.receipt));
-    console.log(receiptProof.receipt.logs)
+    let receiptBytes = await mpt.decodeReceipt(getReceiptBytes(receiptProof.receipt));
+    console.log(receiptProof.receipt.logs);
     // console.log(receiptBytes)
-    console.log(receiptBytes[3][0])
+    console.log(receiptBytes[3][0]);
 
     // check("RECEIPT_ROOT",receiptProof.receipt.root,receiptBytes[0])
-    check("RECEIPT_gasUsed",receiptProof.receipt.gasUsed,receiptBytes[1])
-    check("RECEIPT_logsBloom",receiptProof.receipt.logsBloom,receiptBytes[2])
-    checkReceiptLogs(receiptProof.receipt,receiptBytes)
+    check("RECEIPT_gasUsed", receiptProof.receipt.gasUsed, receiptBytes[1]);
+    check("RECEIPT_logsBloom", receiptProof.receipt.logsBloom, receiptBytes[2]);
+    checkReceiptLogs(receiptProof.receipt, receiptBytes);
 
-    expect(result).to.eq(true)
-  })
-
+    expect(result).to.eq(true);
+  });
 });
 
-function checkReceiptLogs( receipt , receiptBytes){
-   
-  let onchainLogs = receiptBytes[3]
-  let offchainLogs = receipt.logs
+function checkReceiptLogs(receipt, receiptBytes) {
+  let onchainLogs = receiptBytes[3];
+  let offchainLogs = receipt.logs;
 
-  for (let i=0;i<offchainLogs.length;i++){
-     let index = offchainLogs[i].logIndex 
-     check("RECEIPT_contract_addr",offchainLogs[i].address,onchainLogs[index].addr )
-     check("RECEIPT_data",offchainLogs[i].data,onchainLogs[index].data )
-     checkArray("RECEIPT_data",offchainLogs[i].topics,onchainLogs[index].topics )
+  for (let i = 0; i < offchainLogs.length; i++) {
+    let index = offchainLogs[i].logIndex;
+    check("RECEIPT_contract_addr", offchainLogs[i].address, onchainLogs[index].addr);
+    check("RECEIPT_data", offchainLogs[i].data, onchainLogs[index].data);
+    checkArray("RECEIPT_data", offchainLogs[i].topics, onchainLogs[index].topics);
   }
 }

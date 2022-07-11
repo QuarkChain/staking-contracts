@@ -60,8 +60,8 @@ contract W3qProver is LightClient, IW3qProver {
         if (height == curEpochHeight + epochPeriod) {
             address[] memory vals = headBytes.decodeNextValidators();
             uint256[] memory powers = headBytes.decodeNextValidatorPowers();
-            uint256[] memory produceAmountList = headBytes.decodeExtra(); 
-             
+            uint256[] memory produceAmountList = headBytes.decodeExtra();
+
             require(
                 vals.length > 0 && powers.length > 0,
                 "both NextValidators and NextValidatorPowers should not be empty"
@@ -77,7 +77,6 @@ contract W3qProver is LightClient, IW3qProver {
         if (latestBlockHeight < height) {
             latestBlockHeight = height;
         }
-
     }
 
     function proveTx(uint256 height, IW3qProver.Proof memory proof) external view override returns (bool) {

@@ -44,14 +44,12 @@ describe("decode block test", function () {
     let headrlp = genHeadRlp(head);
     let res1 = await db.DecodeExtraTest(headrlp);
     checkArray("CHECK_PRODUCES", res1, produces);
-    head.genExtraWithPrefix(produces,head.Number);
+    head.genExtraWithPrefix(produces, head.Number);
     let headrlp1 = genHeadRlp(head);
     let res2 = await db.DecodeExtraTest(headrlp1);
-    checkArray("PRODUCE_LIST",res2,produces)
-    let [res,succeed] = await db.CutExtraPrefixTest(head.Extra);
-    check("CUT_EXTRA_PREFIX_INPUT",res,head.genExtra(produces).Extra)
-
-
+    checkArray("PRODUCE_LIST", res2, produces);
+    let [res, succeed] = await db.CutExtraPrefixTest(head.Extra);
+    check("CUT_EXTRA_PREFIX_INPUT", res, head.genExtra(produces).Extra);
   });
 
   it("decode Header", async function () {

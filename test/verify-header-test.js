@@ -239,25 +239,56 @@ describe("verify header test", function () {
     let succeed = await db.verifyAllSignatureTest(commit, validators, powers, false, false, 2, chainId);
     check("Verify All Signature", succeed, true);
 
-    let powers_anotherOrderSigs = [5,6,9]
-    let anotherOrderSigs = [sig3,sig2,sig1]
-    let anotherCommit = [100 , 2 ,BlockID,anotherOrderSigs];
-    let anotherSucceed = await db.verifyAllSignatureTest(anotherCommit,validators,powers_anotherOrderSigs,false,false ,19,chainId);
+    let powers_anotherOrderSigs = [5, 6, 9];
+    let anotherOrderSigs = [sig3, sig2, sig1];
+    let anotherCommit = [100, 2, BlockID, anotherOrderSigs];
+    let anotherSucceed = await db.verifyAllSignatureTest(
+      anotherCommit,
+      validators,
+      powers_anotherOrderSigs,
+      false,
+      false,
+      19,
+      chainId
+    );
     check("Verify All Signature", anotherSucceed, true);
 
-    let fail_anotherOrderSigs = await db.verifyAllSignatureTest(anotherCommit,validators,powers_anotherOrderSigs,false,false ,20,chainId);
+    let fail_anotherOrderSigs = await db.verifyAllSignatureTest(
+      anotherCommit,
+      validators,
+      powers_anotherOrderSigs,
+      false,
+      false,
+      20,
+      chainId
+    );
     check("Verify All Signature", fail_anotherOrderSigs, false);
 
-    // fail to verify the third signature 
-    let doubleSigs = [sig1,sig2,sig1]
-    let powers_doubleSigs = [1,2,1]
+    // fail to verify the third signature
+    let doubleSigs = [sig1, sig2, sig1];
+    let powers_doubleSigs = [1, 2, 1];
     let commitWithDouleSigs = [100, 2, BlockID, doubleSigs];
-    let fail = await db.verifyAllSignatureTest(commitWithDouleSigs, validators, powers_doubleSigs, false, false, 3, chainId);
+    let fail = await db.verifyAllSignatureTest(
+      commitWithDouleSigs,
+      validators,
+      powers_doubleSigs,
+      false,
+      false,
+      3,
+      chainId
+    );
     check("Verify All Signature", fail, false);
 
-    let succeed1 = await db.verifyAllSignatureTest(commitWithDouleSigs, validators, powers_doubleSigs, false, false, 2, chainId);
+    let succeed1 = await db.verifyAllSignatureTest(
+      commitWithDouleSigs,
+      validators,
+      powers_doubleSigs,
+      false,
+      false,
+      2,
+      chainId
+    );
     check("Verify All Signature", succeed1, true);
-
   });
 
   it("verify Header", async function () {
