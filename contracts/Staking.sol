@@ -649,11 +649,11 @@ contract Staking is Pauser, Whitelist {
         }
         require(delegator.shares == 0 || delegator.shares >= dt.CELR_DECIMAL, "not enough remaining shares");
 
+        if (delegator.shares == 0) {
+            _removeFrom(delAddr, validator.delAddrs);
+        }
         if (validator.status == dt.ValidatorStatus.Unbonded) {
             CELER_TOKEN.safeTransfer(delAddr, _tokens);
-            if (delegator.shares == 0) {
-                _removeFrom(delAddr, validator.delAddrs);
-            }
             emit Undelegated(_valAddr, delAddr, _tokens);
             return;
         } else if (validator.status == dt.ValidatorStatus.Bonded) {
