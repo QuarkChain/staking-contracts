@@ -1,6 +1,9 @@
-const { expect } = require("chai");
+const { solidity } = require("ethereum-waffle");
+const { use, expect } = require("chai");
 const { ethers } = require("hardhat");
 const { BigNumber } = require("ethers");
+
+use(solidity);
 
 function check(f, got, want) {
   expect(got).to.eq(want, f);
@@ -80,12 +83,13 @@ describe("delegate test", function () {
     let delegators = await staking.getDelegators(validitor.address);
     checkArray("delegators", delegators, [validitor.address, delegator.address]);
     let { tokens } = await staking.getDelegatorInfo(validitor.address, validitor.address);
-    tx = await staking.connect(validitor).undelegateTokens(validitor.address, tokens);
+    await expect(staking.connect(validitor).undelegateTokens(validitor.address, tokens, 1)).to.be.revertedWith('index not found');
+    tx = await staking.connect(validitor).undelegateTokens(validitor.address, tokens, 0);
     rt = await tx.wait();
     delegators = await staking.getDelegators(validitor.address);
     checkArray("delegators", delegators, [delegator.address]);
     ({ tokens } = await staking.getDelegatorInfo(validitor.address, delegator.address));
-    tx = await staking.connect(delegator).undelegateTokens(validitor.address, tokens);
+    tx = await staking.connect(delegator).undelegateTokens(validitor.address, tokens, -1);
     rt = await tx.wait();
     delegators = await staking.getDelegators(validitor.address);
     checkArray("delegators", delegators, []);
