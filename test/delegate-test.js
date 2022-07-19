@@ -83,7 +83,7 @@ describe("delegate test", function () {
     let delegators = await staking.getDelegators(validitor.address);
     checkArray("delegators", delegators, [validitor.address, delegator.address]);
     let { tokens } = await staking.getDelegatorInfo(validitor.address, validitor.address);
-    await expect(staking.connect(validitor).undelegateTokens(validitor.address, tokens, 1)).to.be.revertedWith('index not found');
+    await expect(staking.connect(validitor).undelegateTokens(validitor.address, tokens, 1)).to.be.revertedWith('Index not found');
     tx = await staking.connect(validitor).undelegateTokens(validitor.address, tokens, 0);
     rt = await tx.wait();
     delegators = await staking.getDelegators(validitor.address);

@@ -695,27 +695,20 @@ contract Staking is Pauser, Whitelist {
         int256 _index
     ) private {
         uint256 index = uint256(_index);
-        require(index == uint256(int256(-1)) || _addrArray[index] == _addr, "index not found");
+        require(index == uint256(int256(-1)) || _addrArray[index] == _addr, "Index not found");
         uint256 lastIndex = _addrArray.length - 1;
         if (index == uint256(int256(-1))) {
-            for (uint256 i = 0; i < _addrArray.length; i++) {
-                if (_addrArray[i] == _addr) {
-                    if (i < lastIndex) {
-                        _addrArray[i] = _addrArray[lastIndex];
-                    }
-                    _addrArray.pop();
-                    return;
+            for (index = 0; index <= lastIndex; index++) {
+                if (_addrArray[index] == _addr) {
+                    break;
                 }
             }
+            require(index <= lastIndex, "Address not found");
         }
-        if (_addrArray[index] == _addr) {
-            if (index < lastIndex) {
-                _addrArray[index] = _addrArray[lastIndex];
-            }
-            _addrArray.pop();
-            return;
+        if (index < lastIndex) {
+            _addrArray[index] = _addrArray[lastIndex];
         }
-        revert("Address not found");
+        _addrArray.pop();
     }
 
     /**
