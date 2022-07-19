@@ -42,6 +42,7 @@ contract LightClient is ILightClient, Ownable {
      * Create validator set for an epoch
      */
     function submitHead(
+        uint256,
         bytes memory _epochHeaderBytes,
         bytes memory commitBytes,
         bool lookByIndex
@@ -120,5 +121,58 @@ contract LightClient is ILightClient, Ownable {
 
     function proposedValidators() external view override returns (address[] memory, uint256[] memory) {
         return staking.proposedValidators();
+    }
+
+    function getEpochIdx(uint256 height) public view override returns (uint256) {
+        uint256 _epochPeriod = epochPeriod;
+        uint256 _tmp = curEpochHeight + _epochPeriod;
+        require(height <= _tmp, "height too high");
+        uint256 _distance = (_tmp - height) / _epochPeriod;
+        require(_distance < TOTAL_EPOCH, "out of height range");
+        return curEpochIdx - _distance;
+    }
+
+    function isInHeightRange(uint256 height) public view override returns (bool) {
+        (uint256 min, uint256 max) = heightRange();
+        if (height >= min && height <= max) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    function minEpochIdx() public view override returns (uint256) {
+        if (curEpochIdx >= TOTAL_EPOCH) {
+            return curEpochIdx - TOTAL_EPOCH + 1;
+        }
+        return 0;
+    }
+
+    function heightRange() public view override returns (uint256 min, uint256 max) {
+        min = _minHeight();
+        max = _maxHeight();
+        // when the curEpochHeight is 10000 and TOTAL_EPOCH = 2,
+        // the range of the block ,can be verified by contract, is [1,20000]
+
+        return (min, max);
+    }
+
+    function _minHeight() internal view returns (uint256) {
+        uint256 _curEpochHeight = curEpochHeight;
+        uint256 _epochPeriod = epochPeriod;
+
+        uint256 _range = (TOTAL_EPOCH - 1) * _epochPeriod;
+        uint256 minHeight = 0;
+        if (_curEpochHeight >= _range) {
+            minHeight = _curEpochHeight - _range + 1;
+        }
+        return minHeight;
+    }
+
+    function _maxHeight() internal view returns (uint256) {
+        uint256 _curEpochHeight = curEpochHeight;
+        uint256 _epochPeriod = epochPeriod;
+
+        return _curEpochHeight + _epochPeriod;
     }
 }
