@@ -240,7 +240,7 @@ contract Staking is Pauser, Whitelist {
     function undelegateShares(
         address _valAddr,
         uint256 _shares,
-        int256 _delIndex
+        uint256 _delIndex
     ) external {
         require(_shares >= dt.CELR_DECIMAL, "Minimal amount is 1 share");
         dt.Validator storage validator = validators[_valAddr];
@@ -258,7 +258,7 @@ contract Staking is Pauser, Whitelist {
     function undelegateTokens(
         address _valAddr,
         uint256 _tokens,
-        int256 _delIndex
+        uint256 _delIndex
     ) external {
         require(_tokens >= dt.CELR_DECIMAL, "Minimal amount is 1 CELR");
         dt.Validator storage validator = validators[_valAddr];
@@ -646,7 +646,7 @@ contract Staking is Pauser, Whitelist {
         address _valAddr,
         uint256 _tokens,
         uint256 _shares,
-        int256 _delIndex
+        uint256 _delIndex
     ) private {
         address delAddr = msg.sender;
         dt.Delegator storage delegator = validator.delegators[delAddr];
@@ -692,9 +692,8 @@ contract Staking is Pauser, Whitelist {
     function _removeFrom(
         address _addr,
         address[] storage _addrArray,
-        int256 _index
+        uint256 index
     ) private {
-        uint256 index = uint256(_index);
         require(index == uint256(int256(-1)) || _addrArray[index] == _addr, "Index not found");
         uint256 lastIndex = _addrArray.length - 1;
         if (index == uint256(int256(-1))) {

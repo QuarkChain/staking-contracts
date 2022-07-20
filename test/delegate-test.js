@@ -89,7 +89,7 @@ describe("delegate test", function () {
     delegators = await staking.getDelegators(validitor.address);
     checkArray("delegators", delegators, [delegator.address]);
     ({ tokens } = await staking.getDelegatorInfo(validitor.address, delegator.address));
-    tx = await staking.connect(delegator).undelegateTokens(validitor.address, tokens, -1);
+    tx = await staking.connect(delegator).undelegateTokens(validitor.address, tokens, ethers.constants.MaxUint256);
     rt = await tx.wait();
     delegators = await staking.getDelegators(validitor.address);
     checkArray("delegators", delegators, []);
