@@ -216,6 +216,10 @@ contract Staking is Pauser, Whitelist {
         uint256 shares = _tokenToShare(_tokens, validator.tokens, validator.shares);
 
         dt.Delegator storage delegator = validator.delegators[delAddr];
+        if (delegator.shares == 0) {
+            require(shares > 0, "No new share");
+            validator.delAddrs.push(delAddr);
+        }
         delegator.shares += shares;
         validator.shares += shares;
         validator.tokens += _tokens;
@@ -233,12 +237,16 @@ contract Staking is Pauser, Whitelist {
      * @param _valAddr the address of the validator
      * @param _shares undelegate shares
      */
-    function undelegateShares(address _valAddr, uint256 _shares) external {
+    function undelegateShares(
+        address _valAddr,
+        uint256 _shares,
+        uint256 _delIndex
+    ) external {
         require(_shares >= dt.CELR_DECIMAL, "Minimal amount is 1 share");
         dt.Validator storage validator = validators[_valAddr];
         require(validator.status != dt.ValidatorStatus.Null, "Validator is not initialized");
         uint256 tokens = _shareToToken(_shares, validator.tokens, validator.shares);
-        _undelegate(validator, _valAddr, tokens, _shares);
+        _undelegate(validator, _valAddr, tokens, _shares, _delIndex);
     }
 
     /**
@@ -247,12 +255,16 @@ contract Staking is Pauser, Whitelist {
      * @param _valAddr the address of the validator
      * @param _tokens undelegate tokens
      */
-    function undelegateTokens(address _valAddr, uint256 _tokens) external {
+    function undelegateTokens(
+        address _valAddr,
+        uint256 _tokens,
+        uint256 _delIndex
+    ) external {
         require(_tokens >= dt.CELR_DECIMAL, "Minimal amount is 1 CELR");
         dt.Validator storage validator = validators[_valAddr];
         require(validator.status != dt.ValidatorStatus.Null, "Validator is not initialized");
         uint256 shares = _tokenToShare(_tokens, validator.tokens, validator.shares);
-        _undelegate(validator, _valAddr, _tokens, shares);
+        _undelegate(validator, _valAddr, _tokens, shares, _delIndex);
     }
 
     /**
@@ -496,6 +508,15 @@ contract Staking is Pauser, Whitelist {
     }
 
     /**
+     * @notice Get delegators
+     * @param _valAddr the address of the validator
+     * @return Delegator addresses of this validator
+     */
+    function getDelegators(address _valAddr) public view returns (address[] memory) {
+        return validators[_valAddr].delAddrs;
+    }
+
+    /**
      * @notice Get validator info
      * @param _valAddr the address of the validator
      * @return Validator status
@@ -624,7 +645,8 @@ contract Staking is Pauser, Whitelist {
         dt.Validator storage validator,
         address _valAddr,
         uint256 _tokens,
-        uint256 _shares
+        uint256 _shares,
+        uint256 _delIndex
     ) private {
         address delAddr = msg.sender;
         dt.Delegator storage delegator = validator.delegators[delAddr];
@@ -638,6 +660,9 @@ contract Staking is Pauser, Whitelist {
         }
         require(delegator.shares == 0 || delegator.shares >= dt.CELR_DECIMAL, "not enough remaining shares");
 
+        if (delegator.shares == 0) {
+            _removeFrom(delAddr, validator.delAddrs, _delIndex);
+        }
         if (validator.status == dt.ValidatorStatus.Unbonded) {
             CELER_TOKEN.safeTransfer(delAddr, _tokens);
             emit Undelegated(_valAddr, delAddr, _tokens);
@@ -662,6 +687,27 @@ contract Staking is Pauser, Whitelist {
         delegator.undelegations.tail++;
 
         emit DelegationUpdate(_valAddr, delAddr, validator.tokens, delegator.shares, -int256(_tokens));
+    }
+
+    function _removeFrom(
+        address _addr,
+        address[] storage _addrArray,
+        uint256 index
+    ) private {
+        require(index == uint256(int256(-1)) || _addrArray[index] == _addr, "Index not found");
+        uint256 lastIndex = _addrArray.length - 1;
+        if (index == uint256(int256(-1))) {
+            for (index = 0; index <= lastIndex; index++) {
+                if (_addrArray[index] == _addr) {
+                    break;
+                }
+            }
+            require(index <= lastIndex, "Address not found");
+        }
+        if (index < lastIndex) {
+            _addrArray[index] = _addrArray[lastIndex];
+        }
+        _addrArray.pop();
     }
 
     /**
@@ -769,17 +815,14 @@ contract Staking is Pauser, Whitelist {
     }
 
     function proposedValidators() public view returns (address[] memory, uint256[] memory) {
-        uint256 _maxBondedValidators = params[dt.ParamName.MaxBondedValidators];
-        address[] memory _proposedValidators = new address[](_maxBondedValidators);
-        uint256[] memory _proposedVotingPowers = new uint256[](_maxBondedValidators);
-        for (uint256 i = 0; i < _maxBondedValidators; i++) {
-            if (validators[bondedValAddrs[i]].tokens != 0) {
-                _proposedValidators[i] = validators[bondedValAddrs[i]].signer;
-                // we assume minimal stake is also bigger than 1e18
-                _proposedVotingPowers[i] = validators[bondedValAddrs[i]].tokens / STAKE_UINT;
-            }
+        uint256 bondedLen = bondedValAddrs.length;
+        address[] memory _proposedValidators = new address[](bondedLen);
+        uint256[] memory _proposedVotingPowers = new uint256[](bondedLen);
+        for (uint256 i = 0; i < bondedLen; i++) {
+            _proposedValidators[i] = validators[bondedValAddrs[i]].signer;
+            // we assume minimal stake is also bigger than 1e18
+            _proposedVotingPowers[i] = validators[bondedValAddrs[i]].tokens / STAKE_UINT;
         }
-
         return (_proposedValidators, _proposedVotingPowers);
     }
 }
