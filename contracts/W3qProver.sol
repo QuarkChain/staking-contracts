@@ -40,7 +40,7 @@ contract W3qProver is LightClient, IW3qProver {
         require(epochs[_position].curEpochVals.length != 0, "epoch vals are empty");
 
         //  verify and decode header
-        (uint256 decodeHeight, bytes32 headHash, BlockDecoder.HeadCore memory core) = BlockDecoder.verifyHeader(
+        (uint256 decodedHeight, bytes32 headHash, BlockDecoder.HeadCore memory core) = BlockDecoder.verifyHeader(
             headBytes,
             commitBytes,
             epochs[_position].curEpochVals,
