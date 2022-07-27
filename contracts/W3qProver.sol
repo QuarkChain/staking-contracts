@@ -48,7 +48,7 @@ contract W3qProver is LightClient, IW3qProver {
             lookByIndex
         );
 
-        require(decodeHeight == height, "inconsistent height");
+        require(decodedHeight == height, "inconsistent height");
 
         //  the valid value of block height
 
