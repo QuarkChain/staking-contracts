@@ -37,10 +37,10 @@ contract W3qProver is LightClient, IW3qProver {
 
         uint256 _epochIdx = getEpochIdx(height);
         uint256 _position = _epochPosition(_epochIdx);
-        require(epochs[_position].curEpochVals.length != 0,"epoch vals are empty");
+        require(epochs[_position].curEpochVals.length != 0, "epoch vals are empty");
 
         //  verify and decode header
-        (uint256 decodeHeight, bytes32 headHash, BlockDecoder.HeadCore memory core) = BlockDecoder.verifyHeader(
+        (uint256 decodedHeight, bytes32 headHash, BlockDecoder.HeadCore memory core) = BlockDecoder.verifyHeader(
             headBytes,
             commitBytes,
             epochs[_position].curEpochVals,
@@ -48,7 +48,7 @@ contract W3qProver is LightClient, IW3qProver {
             lookByIndex
         );
 
-        require(decodeHeight == height, "inconsistent height");
+        require(decodedHeight == height, "inconsistent height");
 
         if (height == curEpochHeight + epochPeriod) {
             createEpochValidator(height,headBytes);
