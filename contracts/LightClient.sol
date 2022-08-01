@@ -57,6 +57,13 @@ contract LightClient is ILightClient, Ownable {
             lookByIndex
         );
 
+        createEpochValidator(height,_epochHeaderBytes);
+    }
+
+    /**
+     * Decode validator from headrlpbytes and create validator set for an epoch
+     */
+    function createEpochValidator(uint256 height,bytes memory _epochHeaderBytes)internal{
         address[] memory vals = _epochHeaderBytes.decodeNextValidators();
         uint256[] memory powers = _epochHeaderBytes.decodeNextValidatorPowers();
         require(

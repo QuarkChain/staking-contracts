@@ -50,17 +50,8 @@ contract W3qProver is LightClient, IW3qProver {
 
         require(decodeHeight == height, "inconsistent height");
 
-        //  the valid value of block height
-
         if (height == curEpochHeight + epochPeriod) {
-            address[] memory vals = headBytes.decodeNextValidators();
-            uint256[] memory powers = headBytes.decodeNextValidatorPowers();
-            require(
-                vals.length > 0 && powers.length > 0,
-                "both NextValidators and NextValidatorPowers should not be empty"
-            );
-
-            _createEpochValidators(curEpochIdx + 1, height, vals, powers);
+            createEpochValidator(height,headBytes);
         }
 
         headHashes[height] = headHash;
