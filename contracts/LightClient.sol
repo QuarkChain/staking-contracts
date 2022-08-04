@@ -174,9 +174,6 @@ contract LightClient is ILightClient, Ownable {
     }
 
     function _maxHeight() internal view returns (uint256) {
-        uint256 _curEpochHeight = curEpochHeight;
-        uint256 _epochPeriod = epochPeriod;
-
-        return _curEpochHeight + _epochPeriod;
+        return curEpochHeight + epochPeriod;
     }
 }
