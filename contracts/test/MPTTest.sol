@@ -13,6 +13,10 @@ contract MPTTest {
     ) public pure returns (bool) {
         return value.verify(encodedPath, rlpParentNodes, root);
     }
+
+    function getNibbleArray(bytes memory b) public pure returns (bytes memory) {
+        return MerklePatriciaProof._getNibbleArray(b);
+    }
 }
 
 contract ReceiptTest{
