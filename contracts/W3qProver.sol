@@ -22,7 +22,7 @@ contract W3qProver is LightClient, IW3qProver {
         uint256 height,
         bytes32 headHash
     ) public override(LightClient) onlyOwner {
-        _createEpochValidators(1, height, _epochSigners, _epochVotingPowers);
+        _setEpochValidators(1, height, _epochSigners, _epochVotingPowers);
         latestBlockHeight = height;
         headHashes[height] = headHash;
     }
@@ -34,25 +34,16 @@ contract W3qProver is LightClient, IW3qProver {
         bool lookByIndex
     ) public override(IW3qProver, LightClient) {
         require(!blockExist(height), "block exist");
-
         uint256 _epochIdx = getEpochIdx(height);
-        uint256 _position = _epochPosition(_epochIdx);
-        require(epochs[_position].curEpochVals.length != 0, "epoch vals are empty");
 
         //  verify and decode header
-        (uint256 decodedHeight, bytes32 headHash, BlockDecoder.HeadCore memory core) = BlockDecoder.verifyHeader(
+        (uint256 decodedHeight, bytes32 headHash, BlockDecoder.HeadCore memory core) = _submitHead(
+            _epochIdx,
             headBytes,
             commitBytes,
-            epochs[_position].curEpochVals,
-            epochs[_position].curVotingPowers,
             lookByIndex
         );
-
         require(decodedHeight == height, "inconsistent height");
-
-        if (height == curEpochHeight + epochPeriod) {
-            createEpochValidator(height,headBytes);
-        }
 
         headHashes[height] = headHash;
         headCores[height] = core;

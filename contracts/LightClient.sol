@@ -35,7 +35,7 @@ contract LightClient is ILightClient, Ownable {
         uint256 _height,
         bytes32
     ) public virtual override onlyOwner {
-        _createEpochValidators(1, _height, _epochSigners, _epochVotingPowers);
+        _setEpochValidators(1, _height, _epochSigners, _epochVotingPowers);
     }
 
     /**
@@ -43,27 +43,49 @@ contract LightClient is ILightClient, Ownable {
      */
     function submitHead(
         uint256,
-        bytes memory _epochHeaderBytes,
+        bytes memory epochHeaderBytes,
         bytes memory commitBytes,
         bool lookByIndex
     ) public virtual override {
         //1. verify epoch header
-        uint256 position = _epochPosition(curEpochIdx);
-        (uint256 height, , ) = BlockDecoder.verifyHeader(
-            _epochHeaderBytes,
+        _submitHead(curEpochIdx, epochHeaderBytes, commitBytes, lookByIndex);
+    }
+
+    function _submitHead(
+        uint256 epochIdx,
+        bytes memory headBytes,
+        bytes memory commitBytes,
+        bool lookByIndex
+    )
+        internal
+        returns (
+            uint256,
+            bytes32,
+            BlockDecoder.HeadCore memory
+        )
+    {
+        uint256 _position = _epochPosition(epochIdx);
+        require(epochs[_position].curEpochVals.length != 0, "epoch vals are empty");
+        //  verify and decode header
+        (uint256 decodedHeight, bytes32 headHash, BlockDecoder.HeadCore memory core) = BlockDecoder.verifyHeader(
+            headBytes,
             commitBytes,
-            epochs[position].curEpochVals,
-            epochs[position].curVotingPowers,
+            epochs[_position].curEpochVals,
+            epochs[_position].curVotingPowers,
             lookByIndex
         );
 
-        createEpochValidator(height,_epochHeaderBytes);
+        if (decodedHeight == curEpochHeight + epochPeriod) {
+            _updateEpochValidator(decodedHeight, headBytes);
+        }
+
+        return (decodedHeight, headHash, core);
     }
 
     /**
      * Decode validator from headrlpbytes and create validator set for an epoch
      */
-    function createEpochValidator(uint256 height,bytes memory _epochHeaderBytes)internal{
+    function _updateEpochValidator(uint256 height, bytes memory _epochHeaderBytes) internal {
         address[] memory vals = _epochHeaderBytes.decodeNextValidators();
         uint256[] memory powers = _epochHeaderBytes.decodeNextValidatorPowers();
         require(
@@ -71,15 +93,14 @@ contract LightClient is ILightClient, Ownable {
             "both NextValidators and NextValidatorPowers should not be empty"
         );
 
-        require(curEpochHeight + epochPeriod == height, "incorrect height");
-        _createEpochValidators(curEpochIdx + 1, height, vals, powers);
+        _setEpochValidators(curEpochIdx + 1, height, vals, powers);
     }
 
     /**
      * Create validator set for an epoch
      * @param _epochIdx the index of epoch to propose validators
      */
-    function _createEpochValidators(
+    function _setEpochValidators(
         uint256 _epochIdx,
         uint256 _epochHeight,
         address[] memory _epochSigners,
