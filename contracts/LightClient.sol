@@ -184,15 +184,12 @@ contract LightClient is ILightClient, Ownable {
     }
 
     function _minHeight() internal view returns (uint256) {
-        uint256 _curEpochHeight = curEpochHeight;
-        uint256 _epochPeriod = epochPeriod;
-
-        uint256 _range = (TOTAL_EPOCH - 1) * _epochPeriod;
-        uint256 minHeight = 0;
-        if (_curEpochHeight >= _range) {
-            minHeight = _curEpochHeight - _range + 1;
+        uint256 _minEpochId = minEpochIdx();
+        if (_minEpochId == 0) {
+            return 0;
+        } else {
+            return (_minEpochId - 1) * epochPeriod + 1;
         }
-        return minHeight;
     }
 
     function _maxHeight() internal view returns (uint256) {
