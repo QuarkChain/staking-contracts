@@ -153,6 +153,7 @@ contract LightClient is ILightClient, Ownable {
 
     function getEpochIdx(uint256 height) public view override returns (uint256) {
         require(isInHeightRange(height), "out of height range");
+        //Reduce the times of Sload
         uint256 _epochPeriod = epochPeriod;
         return (height + _epochPeriod - 1) / _epochPeriod;
     }
@@ -176,7 +177,7 @@ contract LightClient is ILightClient, Ownable {
     function heightRange() public view override returns (uint256 min, uint256 max) {
         min = _minHeight();
         max = _maxHeight();
-        // when the curEpochHeight is 10000 and TOTAL_EPOCH = 2,
+        // when the latestEpochHeight is 10000 and TOTAL_EPOCH = 2,
         // the range of the block ,can be verified by contract, is [1,20000]
 
         return (min, max);
