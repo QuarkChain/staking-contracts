@@ -74,17 +74,17 @@ interface ILightClient {
     function proposedValidators() external view returns (address[] memory, uint256[] memory);
 
     /**
-     * @notice Get epoch index by block height
+     * @notice Get available epoch index by block height
      */
     function getEpochIdx(uint256 height) external view returns (uint256);
 
     /**
-     * @notice Check height is valid or not
+     * @notice Check whether the block of the height can be accepted or not
      */
     function isInHeightRange(uint256 height) external view returns (bool);
 
     /**
-     * @notice Get the smallest block index stored in the contract
+     * @notice Get the smallest epoch index stored in the contract
      */
     function minEpochIdx() external view returns (uint256);
 

@@ -107,6 +107,7 @@ contract LightClient is ILightClient, Ownable {
         uint256[] memory _epochVotingPowers
     ) internal {
         require(_epochIdx > curEpochIdx, "epoch too old");
+        require(_epochHeight == (_epochIdx - 1) * epochPeriod, "epochIdx and epochHeight do not match");
 
         // Check if the epoch validators are from proposed.
         // This means that the 2/3+ validators have accepted the proposed validators from the contract.
@@ -153,7 +154,7 @@ contract LightClient is ILightClient, Ownable {
 
     function getEpochIdx(uint256 height) public view override returns (uint256) {
         require(isInHeightRange(height), "out of height range");
-        //Reduce the times of Sload
+        // Reduce the times of Sload
         uint256 _epochPeriod = epochPeriod;
         return (height + _epochPeriod - 1) / _epochPeriod;
     }
@@ -179,8 +180,6 @@ contract LightClient is ILightClient, Ownable {
         max = _maxHeight();
         // when the latestEpochHeight is 10000 and TOTAL_EPOCH = 2,
         // the range of the block ,can be verified by contract, is [1,20000]
-
-        return (min, max);
     }
 
     function _minHeight() internal view returns (uint256) {
