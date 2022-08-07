@@ -22,7 +22,7 @@ contract W3qProver is LightClient, IW3qProver {
         uint256 height,
         bytes32 headHash
     ) public override(LightClient) onlyOwner {
-        _setEpochValidators(1, height, _epochSigners, _epochVotingPowers);
+        super.initEpoch(_epochSigners, _epochVotingPowers, height, headHash);
         latestBlockHeight = height;
         headHashes[height] = headHash;
     }

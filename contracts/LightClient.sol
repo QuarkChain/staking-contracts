@@ -15,7 +15,7 @@ contract LightClient is ILightClient, Ownable {
     Epoch[TOTAL_EPOCH] epochs;
 
     uint256 public override curEpochIdx;
-    uint256 public override curEpochHeight;
+    // uint256 public override curEpochHeight;
     uint256 public override epochPeriod;
 
     IStaking public staking;
@@ -35,7 +35,8 @@ contract LightClient is ILightClient, Ownable {
         uint256 _height,
         bytes32
     ) public virtual override onlyOwner {
-        _setEpochValidators(1, _height, _epochSigners, _epochVotingPowers);
+        uint256 epochIdx = _deriveEpochIdx(_height, epochPeriod);
+        _setEpochValidators(epochIdx, _epochSigners, _epochVotingPowers);
     }
 
     /**
@@ -75,8 +76,9 @@ contract LightClient is ILightClient, Ownable {
             lookByIndex
         );
 
-        if (decodedHeight == curEpochHeight + epochPeriod) {
-            _updateEpochValidator(decodedHeight, headBytes);
+        // Update Validators if the height of the submitted block header is equal to the height of the next EpochHeight
+        if (decodedHeight == curEpochHeight() + epochPeriod) {
+            _updateEpochValidator(headBytes);
         }
 
         return (decodedHeight, headHash, core);
@@ -85,7 +87,7 @@ contract LightClient is ILightClient, Ownable {
     /**
      * Decode validator from headrlpbytes and create validator set for an epoch
      */
-    function _updateEpochValidator(uint256 height, bytes memory _epochHeaderBytes) internal {
+    function _updateEpochValidator(bytes memory _epochHeaderBytes) internal {
         address[] memory vals = _epochHeaderBytes.decodeNextValidators();
         uint256[] memory powers = _epochHeaderBytes.decodeNextValidatorPowers();
         require(
@@ -93,7 +95,7 @@ contract LightClient is ILightClient, Ownable {
             "both NextValidators and NextValidatorPowers should not be empty"
         );
 
-        _setEpochValidators(curEpochIdx + 1, height, vals, powers);
+        _setEpochValidators(curEpochIdx + 1, vals, powers);
     }
 
     /**
@@ -102,20 +104,16 @@ contract LightClient is ILightClient, Ownable {
      */
     function _setEpochValidators(
         uint256 _epochIdx,
-        uint256 _epochHeight,
         address[] memory _epochSigners,
         uint256[] memory _epochVotingPowers
     ) internal {
         require(_epochIdx > curEpochIdx, "epoch too old");
-        require(_epochHeight == (_epochIdx - 1) * epochPeriod, "epochIdx and epochHeight do not match");
-
         // Check if the epoch validators are from proposed.
         // This means that the 2/3+ validators have accepted the proposed validators from the contract.
         require(_epochSigners.length == _epochVotingPowers.length, "incorrect length");
 
         uint256 position = _epochPosition(_epochIdx);
         curEpochIdx = _epochIdx;
-        curEpochHeight = _epochHeight;
         epochs[position].curEpochVals = _epochSigners;
         epochs[position].curVotingPowers = _epochVotingPowers;
 
@@ -141,7 +139,7 @@ contract LightClient is ILightClient, Ownable {
     }
 
     function getNextEpochHeight() external view override returns (uint256 height) {
-        return curEpochHeight + epochPeriod;
+        return curEpochHeight() + epochPeriod;
     }
 
     function getStaking() external view override returns (address) {
@@ -192,6 +190,22 @@ contract LightClient is ILightClient, Ownable {
     }
 
     function _maxHeight() internal view returns (uint256) {
-        return curEpochHeight + epochPeriod;
+        return curEpochHeight() + epochPeriod;
+    }
+
+    function _deriveEpochHeight(uint256 _epochIdx, uint256 _epochPeriod) internal pure returns (uint256) {
+        require(_epochIdx != 0, "epochIdx can not be 0");
+        uint256 _curEpochHeight = (_epochIdx - 1) * _epochPeriod;
+        return _curEpochHeight;
+    }
+
+    function _deriveEpochIdx(uint256 _epochHeight, uint256 _epochPeriod) internal pure returns (uint256) {
+        require(_epochHeight % _epochPeriod == 0, "invalid epochHeight");
+        uint256 _epochIdx = _epochHeight / _epochPeriod + 1;
+        return _epochIdx;
+    }
+
+    function curEpochHeight() public view override returns (uint256) {
+        return _deriveEpochHeight(curEpochIdx, epochPeriod);
     }
 }
