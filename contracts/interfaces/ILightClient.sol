@@ -1,7 +1,6 @@
 pragma solidity ^0.8.0;
 
 interface ILightClient {
-
     struct Proof {
         bytes rlpValue;
         bytes rlpParentNodes;
@@ -14,17 +13,16 @@ interface ILightClient {
     }
 
     /**
-     * @notice Initialize epoch data
+     * @notice Initialize the epochIdx ,validators and votingPowers of the first epoch. And default value of epochIdx is 1, the default value of height is 0 .
      */
     function initEpoch(
         address[] memory epochSigners,
         uint256[] memory epochVotingPowers,
-        uint256 height,
         bytes32 headHash
     ) external;
 
     /**
-     * @notice Submit epoch head
+     * @notice Submit epoch head and common head.
      */
     function submitHead(
         uint256,
@@ -34,7 +32,7 @@ interface ILightClient {
     ) external;
 
     /**
-     * @notice Get the validator, voting weight and block height of the current epoch
+     * @notice Get the eurEpochIdx , validators and votingPowers of the current epoch
      */
     function getCurrentEpoch()
         external
@@ -76,7 +74,7 @@ interface ILightClient {
     function getStaking() external view returns (address);
 
     /**
-     * @notice Get proposed validators
+     * @notice Get proposed validators which depends on the number of tokens staked in the staking contract by the validator.
      */
     function proposedValidators() external view returns (address[] memory, uint256[] memory);
 

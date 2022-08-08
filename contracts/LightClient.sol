@@ -39,12 +39,11 @@ contract LightClient is ILightClient, Ownable {
     function initEpoch(
         address[] memory _epochSigners,
         uint256[] memory _epochVotingPowers,
-        uint256 height,
         bytes32 headHash
     ) public virtual override onlyOwner {
         _setEpochValidators(1, _epochSigners, _epochVotingPowers);
-        latestBlockHeight = height;
-        headHashes[height] = headHash;
+        latestBlockHeight = 0;
+        headHashes[0] = headHash;
     }
 
     /**
@@ -100,7 +99,7 @@ contract LightClient is ILightClient, Ownable {
         );
 
         // Update Validators if the height of the submitted block header is equal to the height of the next EpochHeight
-        if (decodedHeight == curEpochHeight() + epochPeriod) {
+        if (decodedHeight == getNextEpochHeight()) {
             _updateEpochValidator(headBytes);
         }
 
@@ -161,7 +160,7 @@ contract LightClient is ILightClient, Ownable {
         epochPeriod = _epochPeriod;
     }
 
-    function getNextEpochHeight() external view override returns (uint256 height) {
+    function getNextEpochHeight() public view override returns (uint256 height) {
         return curEpochHeight() + epochPeriod;
     }
 
@@ -216,16 +215,14 @@ contract LightClient is ILightClient, Ownable {
         return curEpochHeight() + epochPeriod;
     }
 
+    /**
+     * @notice Calculate the height of EpochHeight by epochIdx and epochPeriod.
+     * Their relationship is as follows: epochHeight = (epochIdx - 1) * epochPeriod
+     */
     function _deriveEpochHeight(uint256 _epochIdx, uint256 _epochPeriod) internal pure returns (uint256) {
         require(_epochIdx != 0, "epochIdx can not be 0");
         uint256 _curEpochHeight = (_epochIdx - 1) * _epochPeriod;
         return _curEpochHeight;
-    }
-
-    function _deriveEpochIdx(uint256 _epochHeight, uint256 _epochPeriod) internal pure returns (uint256) {
-        require(_epochHeight % _epochPeriod == 0, "invalid epochHeight");
-        uint256 _epochIdx = _epochHeight / _epochPeriod + 1;
-        return _epochIdx;
     }
 
     function curEpochHeight() public view override returns (uint256) {
