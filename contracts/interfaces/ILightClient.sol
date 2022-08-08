@@ -49,7 +49,7 @@ interface ILightClient {
     function curEpochHeight() external view returns (uint256 height);
 
     /**
-     * @notice Get the block height of next epoch
+     * @notice Get the height of the block that set the validators of the next epoch, which is the highest block of the current epoch.
      */
     function getNextEpochHeight() external view returns (uint256 height);
 
