@@ -39,7 +39,7 @@ interface ILightClient {
         );
 
     /**
-     * @notice Get the index of current epoch
+     * @notice Get the highest epoch, whose blocks can be verified, i.e., blocks in [(idx - 1) * epochPeriod + 1, idx * epochPeroid]
      */
     function curEpochIdx() external view returns (uint256);
 
