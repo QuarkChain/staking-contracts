@@ -107,7 +107,7 @@ contract LightClient is ILightClient, Ownable {
         address[] memory _epochSigners,
         uint256[] memory _epochVotingPowers
     ) internal {
-        require(_epochIdx > curEpochIdx, "epoch too old");
+        require(_epochIdx == curEpochIdx + 1, "epoch too old");
         // Check if the epoch validators are from proposed.
         // This means that the 2/3+ validators have accepted the proposed validators from the contract.
         require(_epochSigners.length == _epochVotingPowers.length, "incorrect length");
