@@ -89,7 +89,7 @@ interface ILightClient {
     function isInHeightRange(uint256 height) external view returns (bool);
 
     /**
-     * @notice Get the smallest epoch index stored in the contract
+     * @notice Get the smallest epoch whose blocks can be verified by the contract.
      */
     function minEpochIdx() external view returns (uint256);
 
