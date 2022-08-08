@@ -18,11 +18,12 @@ contract LightClient is ILightClient, Ownable {
     Epoch[TOTAL_EPOCH] epochs;
 
     uint256 public override curEpochIdx;
-    // uint256 public override curEpochHeight;
     uint256 public override epochPeriod;
 
+    // A contract address used to pledge w3q token to obtain voting rights.
     IStaking public staking;
 
+    // Record the block with the highest block height among the blocks submitted via submitHead()
     uint256 public override latestBlockHeight;
     mapping(uint256 => bytes32) public override headHashes;
     mapping(uint256 => BlockDecoder.HeadCore) public headCores;
@@ -32,10 +33,16 @@ contract LightClient is ILightClient, Ownable {
         staking = IStaking(_staking);
     }
 
+    /**
+     * @notice Get the index of the current epoch data stored in epochs.
+     */
     function _epochPosition(uint256 _epochIdx) internal pure returns (uint256) {
         return _epochIdx % TOTAL_EPOCH;
     }
 
+    /**
+     * @notice Initialize the epochIdx ,validators and votingPowers of the first epoch. And default value of epochIdx is 1, the default value of height is 0 .
+     */
     function initEpoch(
         address[] memory _epochSigners,
         uint256[] memory _epochVotingPowers,
@@ -47,7 +54,7 @@ contract LightClient is ILightClient, Ownable {
     }
 
     /**
-     * Create validator set for an epoch
+     * @notice Submit epoch head and common head.
      */
     function submitHead(
         uint256 height,
