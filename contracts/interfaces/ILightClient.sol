@@ -59,7 +59,7 @@ interface ILightClient {
     function getNextEpochHeight() external view returns (uint256 height);
 
     /**
-     * @notice set the value of epoch period
+     * @notice Set the value of epoch period
      */
     function setEpochPeriod(uint256 _epochPeriod) external;
 
