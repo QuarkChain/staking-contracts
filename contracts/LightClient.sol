@@ -56,7 +56,7 @@ contract LightClient is ILightClient, Ownable {
     /**
      * @notice Submit epoch head and common head.
      */
-    function submitHead(
+    function submitHeader(
         uint256 height,
         bytes memory headBytes,
         bytes memory commitBytes,
@@ -66,7 +66,7 @@ contract LightClient is ILightClient, Ownable {
         uint256 _epochIdx = getEpochIdx(height);
 
         //  verify and decode header
-        (uint256 decodedHeight, bytes32 headHash, BlockDecoder.HeadCore memory core) = _submitHead(
+        (uint256 decodedHeight, bytes32 headHash, BlockDecoder.HeadCore memory core) = _submitHeader(
             _epochIdx,
             headBytes,
             commitBytes,
@@ -81,7 +81,7 @@ contract LightClient is ILightClient, Ownable {
         }
     }
 
-    function _submitHead(
+    function _submitHeader(
         uint256 epochIdx,
         bytes memory headBytes,
         bytes memory commitBytes,

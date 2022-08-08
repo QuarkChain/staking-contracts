@@ -24,7 +24,7 @@ interface ILightClient {
     /**
      * @notice Submit epoch head and common head.
      */
-    function submitHead(
+    function submitHeader(
         uint256,
         bytes memory _epochHeaderBytes,
         bytes memory commitBytes,
