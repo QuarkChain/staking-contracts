@@ -59,7 +59,7 @@ interface ILightClient {
     function setEpochPeriod(uint256 _epochPeriod) external;
 
     /**
-     * @notice Get epoch period
+     * @notice Number of blocks in each epoch.
      */
     function epochPeriod() external view returns (uint256 height);
 
