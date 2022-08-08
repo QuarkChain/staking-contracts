@@ -1,6 +1,9 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 pragma solidity ^0.8.0;
 
 import "./lib/BlockDecoder.sol";
+import "./lib/MerklePatriciaProof.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IStaking.sol";
 import "./interfaces/ILightClient.sol";
@@ -20,6 +23,10 @@ contract LightClient is ILightClient, Ownable {
 
     IStaking public staking;
 
+    uint256 public override latestBlockHeight;
+    mapping(uint256 => bytes32) public override headHashes;
+    mapping(uint256 => BlockDecoder.HeadCore) public headCores;
+
     constructor(uint256 _epochPeriod, address _staking) {
         epochPeriod = _epochPeriod;
         staking = IStaking(_staking);
@@ -32,24 +39,40 @@ contract LightClient is ILightClient, Ownable {
     function initEpoch(
         address[] memory _epochSigners,
         uint256[] memory _epochVotingPowers,
-        uint256 _height,
-        bytes32
+        uint256 height,
+        bytes32 headHash
     ) public virtual override onlyOwner {
-        uint256 epochIdx = _deriveEpochIdx(_height, epochPeriod);
-        _setEpochValidators(epochIdx, _epochSigners, _epochVotingPowers);
+        _setEpochValidators(1, _epochSigners, _epochVotingPowers);
+        latestBlockHeight = height;
+        headHashes[height] = headHash;
     }
 
     /**
      * Create validator set for an epoch
      */
     function submitHead(
-        uint256,
-        bytes memory epochHeaderBytes,
+        uint256 height,
+        bytes memory headBytes,
         bytes memory commitBytes,
         bool lookByIndex
     ) public virtual override {
-        //1. verify epoch header
-        _submitHead(curEpochIdx, epochHeaderBytes, commitBytes, lookByIndex);
+        require(!blockExist(height), "block exist");
+        uint256 _epochIdx = getEpochIdx(height);
+
+        //  verify and decode header
+        (uint256 decodedHeight, bytes32 headHash, BlockDecoder.HeadCore memory core) = _submitHead(
+            _epochIdx,
+            headBytes,
+            commitBytes,
+            lookByIndex
+        );
+        require(decodedHeight == height, "inconsistent height");
+
+        headHashes[height] = headHash;
+        headCores[height] = core;
+        if (latestBlockHeight < height) {
+            latestBlockHeight = height;
+        }
     }
 
     function _submitHead(
@@ -207,5 +230,31 @@ contract LightClient is ILightClient, Ownable {
 
     function curEpochHeight() public view override returns (uint256) {
         return _deriveEpochHeight(curEpochIdx, epochPeriod);
+    }
+
+    function proveTx(uint256 height, ILightClient.Proof memory proof) external view override returns (bool) {
+        bytes32 txRoot = getTxRoot(height);
+        return MerklePatriciaProof.verify(proof.rlpValue, proof.rlpParentNodes, proof.encodePath, txRoot);
+    }
+
+    function proveReceipt(uint256 height, ILightClient.Proof memory proof) external view override returns (bool) {
+        bytes32 recRoot = getReceiptRoot(height);
+        return MerklePatriciaProof.verify(proof.rlpValue, proof.rlpParentNodes, proof.encodePath, recRoot);
+    }
+
+    function getStateRoot(uint256 height) public view override returns (bytes32) {
+        return headCores[height].Root;
+    }
+
+    function getTxRoot(uint256 height) public view override returns (bytes32) {
+        return headCores[height].TxHash;
+    }
+
+    function getReceiptRoot(uint256 height) public view override returns (bytes32) {
+        return headCores[height].ReceiptHash;
+    }
+
+    function blockExist(uint256 height) public view override returns (bool) {
+        return headHashes[height] != bytes32(0);
     }
 }

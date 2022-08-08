@@ -234,7 +234,7 @@ describe("light client test", function () {
     await db.deployed();
 
     epochPeriod = 10000;
-    let factory2 = await ethers.getContractFactory("W3qProver");
+    let factory2 = await ethers.getContractFactory("LightClient");
     test = await factory2.deploy(epochPeriod, staking.address);
     await test.deployed();
   });
