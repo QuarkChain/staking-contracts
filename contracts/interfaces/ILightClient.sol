@@ -94,7 +94,7 @@ interface ILightClient {
     function minEpochIdx() external view returns (uint256);
 
     /**
-     * @notice Get valid block height range
+     * @notice Get verifiable block height range
      */
     function heightRange() external view returns (uint256 min, uint256 max);
 
