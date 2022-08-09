@@ -67,7 +67,7 @@ contract LightClient is ILightClient, Ownable {
         require(!blockExist(height), "block exist");
         uint256 _epochIdx = getEpochIdx(height);
 
-        //  verify and decode header
+        // verify and decode header
         (uint256 decodedHeight, bytes32 headHash, BlockDecoder.HeadCore memory core) = _submitHeader(
             _epochIdx,
             headBytes,
