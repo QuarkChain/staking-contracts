@@ -98,7 +98,7 @@ contract LightClient is ILightClient, Ownable {
     {
         uint256 _position = _epochPosition(epochIdx);
         require(epochs[_position].curEpochVals.length != 0, "epoch vals are empty");
-        //  verify and decode header
+        // verify and decode header
         (uint256 decodedHeight, bytes32 headHash, BlockDecoder.HeadCore memory core) = BlockDecoder.verifyHeader(
             headBytes,
             commitBytes,
