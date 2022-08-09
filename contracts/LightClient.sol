@@ -56,7 +56,7 @@ contract LightClient is ILightClient, Ownable {
     }
 
     /**
-     * @notice Submit epoch head and common head.
+     * @notice Submit an epoch header or non-epoch header.
      */
     function submitHeader(
         uint256 height,
