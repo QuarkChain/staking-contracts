@@ -122,7 +122,7 @@ contract LightClient is ILightClient, Ownable {
         address[] memory vals = _epochHeaderBytes.decodeNextValidators();
         uint256[] memory powers = _epochHeaderBytes.decodeNextValidatorPowers();
         require(
-            vals.length > 0 && powers.length > 0,
+            vals.length > 0 && vals.length == powers.length,
             "both NextValidators and NextValidatorPowers should not be empty"
         );
 
