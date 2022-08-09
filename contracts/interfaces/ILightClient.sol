@@ -18,6 +18,7 @@ interface ILightClient {
     function initEpoch(
         address[] memory epochSigners,
         uint256[] memory epochVotingPowers,
+        uint256 height,
         bytes32 headHash
     ) external;
 

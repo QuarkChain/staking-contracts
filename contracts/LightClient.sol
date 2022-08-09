@@ -46,11 +46,13 @@ contract LightClient is ILightClient, Ownable {
     function initEpoch(
         address[] memory _epochSigners,
         uint256[] memory _epochVotingPowers,
+        uint256 height,
         bytes32 headHash
     ) public virtual override onlyOwner {
+        require(height == 0, "hieight should be 0");
         _setEpochValidators(1, _epochSigners, _epochVotingPowers);
-        latestBlockHeight = 0;
-        headHashes[0] = headHash;
+        latestBlockHeight = height;
+        headHashes[height] = headHash;
     }
 
     /**
