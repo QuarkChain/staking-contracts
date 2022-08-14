@@ -79,7 +79,7 @@ contract BlockDecoderTest {
             BlockDecoder.HeadCore memory
         )
     {
-        return BlockDecoder.verifyHeader(headerRlpBytes, commitRlpBytes, validators, votePowers);
+        return BlockDecoder.verifyHeader(headerRlpBytes, commitRlpBytes, validators, votePowers, false);
     }
 
     function voteSignBytesTest(
