@@ -49,7 +49,7 @@ library MerklePatriciaProof {
                 return false;
             }
             currentNodeList = RLPReader.toList(parentNodes[i]);
-
+            
             if (currentNodeList.length == 17) {
                 if (pathPtr == path.length) {
                     if (keccak256(RLPReader.toBytes(currentNodeList[16])) == keccak256(value)) {
@@ -71,8 +71,6 @@ library MerklePatriciaProof {
                     //leaf node
                     if (keccak256(RLPReader.toBytes(currentNodeList[1])) == keccak256(value)) {
                         return true;
-                    } else {
-                        return false;
                     }
                 }
 
@@ -95,7 +93,7 @@ library MerklePatriciaProof {
         bytes memory encodedPartialPath,
         bytes memory path,
         uint256 pathPtr
-    ) private pure returns (uint256) {
+    ) internal pure returns (uint256) {
         uint256 len;
         // encodedPartialPath has elements that are each two hex characters (1 byte), but partialPath
         // and slicedPath have elements that are each one hex character (1 nibble)
@@ -118,7 +116,7 @@ library MerklePatriciaProof {
     }
 
     // bytes b must be hp encoded
-    function _getNibbleArray(bytes memory b) private pure returns (bytes memory) {
+    function _getNibbleArray(bytes memory b) internal pure returns (bytes memory) {
         bytes memory nibbles;
         if (b.length > 0) {
             uint8 offset;

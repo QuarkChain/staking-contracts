@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 
 import "./lib/BlockDecoder.sol";
 import "./interfaces/IW3qERC20.sol";
+import "./lib/MerklePatriciaProof.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IStaking.sol";
 import "./interfaces/ILightClient.sol";
@@ -19,11 +20,16 @@ contract LightClient is ILightClient, Ownable {
     Epoch[TOTAL_EPOCH] epochs;
 
     uint256 public override curEpochIdx;
-    uint256 public override curEpochHeight;
     uint256 public override epochPeriod;
 
+    // A contract address used to pledge w3q token to obtain voting rights.
     IStaking public staking;
     IW3qERC20 public w3qErc20;
+
+    // Record the block with the highest block height among the blocks submitted via submitHead()
+    uint256 public override latestBlockHeight;
+    mapping(uint256 => bytes32) public override headHashes;
+    mapping(uint256 => BlockDecoder.HeadCore) public headCores;
 
     constructor(
         uint256 _epochPeriod,
@@ -35,76 +41,140 @@ contract LightClient is ILightClient, Ownable {
         w3qErc20 = IW3qERC20(_w3qErc20);
     }
 
+    /**
+     * @notice Get the index of the current epoch data stored in epochs.
+     */
     function _epochPosition(uint256 _epochIdx) internal pure returns (uint256) {
         return _epochIdx % TOTAL_EPOCH;
     }
 
+    /**
+     * @notice Initialize the epochIdx ,validators and votingPowers of the first epoch. And default value of epochIdx is 1, the default value of height is 0 .
+     */
     function initEpoch(
         address[] memory _epochSigners,
         uint256[] memory _epochVotingPowers,
-        uint256 _height,
-        bytes32
+        uint256 height,
+        bytes32 headHash
     ) public virtual override onlyOwner {
-        _createEpochValidators(1, _height, _epochSigners, _epochVotingPowers);
+        require(height == 0, "hieight should be 0");
+        _setEpochValidators(1, _epochSigners, _epochVotingPowers);
+        latestBlockHeight = height;
+        headHashes[height] = headHash;
     }
 
     /**
-     * Submit epoch head
+     * @notice Submit an epoch header or non-epoch header.
      */
-    function submitHead(
-        uint256,
-        bytes memory _epochHeaderBytes,
+    function submitHeader(
+        uint256 height,
+        bytes memory headBytes,
         bytes memory commitBytes,
         bool lookByIndex
     ) public virtual override {
-        //1. verify epoch header
-        uint256 position = _epochPosition(curEpochIdx);
-        (uint256 height, , ) = BlockDecoder.verifyHeader(
-            _epochHeaderBytes,
+        require(!blockExist(height), "block exist");
+        uint256 _epochIdx = getEpochIdx(height);
+
+        // verify and decode header
+        (uint256 decodedHeight, bytes32 headHash, BlockDecoder.HeadCore memory core) = _submitHeader(
+            _epochIdx,
+            headBytes,
             commitBytes,
-            epochs[position].curEpochVals,
-            epochs[position].curVotingPowers,
+            lookByIndex
+        );
+        require(decodedHeight == height, "inconsistent height");
+
+        headHashes[height] = headHash;
+        headCores[height] = core;
+        if (latestBlockHeight < height) {
+            latestBlockHeight = height;
+        }
+    }
+
+    function _submitHeader(
+        uint256 epochIdx,
+        bytes memory headBytes,
+        bytes memory commitBytes,
+        bool lookByIndex
+    )
+        internal
+        returns (
+            uint256,
+            bytes32,
+            BlockDecoder.HeadCore memory
+        )
+    {
+        uint256 _position = _epochPosition(epochIdx);
+        require(epochs[_position].curEpochVals.length != 0, "epoch vals are empty");
+        // verify and decode header
+        (uint256 decodedHeight, bytes32 headHash, BlockDecoder.HeadCore memory core) = BlockDecoder.verifyHeader(
+            headBytes,
+            commitBytes,
+            epochs[_position].curEpochVals,
+            epochs[_position].curVotingPowers,
             lookByIndex
         );
 
+        // Update Validators if the height of the submitted block header is equal to the height of the next EpochHeight
+        if (decodedHeight == getNextEpochHeight()) {
+            _updateEpochValidator(headBytes,_position);
+        }
+
+        return (decodedHeight, headHash, core);
+    }
+
+    /**
+     * Decode validator from headrlpbytes and create validator set for an epoch
+     */
+    function _updateEpochValidator(bytes memory _epochHeaderBytes,uint256 epochPosition) internal {
         address[] memory vals = _epochHeaderBytes.decodeNextValidators();
         uint256[] memory powers = _epochHeaderBytes.decodeNextValidatorPowers();
+        uint256[] memory produceAmountList = _epochHeaderBytes.decodeExtra();
         require(
-            vals.length > 0 && powers.length > 0,
-            "both NextValidators and NextValidatorPowers should not be empty"
+            vals.length > 0 && vals.length == powers.length && vals.length == powers.length,
+            "incorrect length"
         );
 
-        require(curEpochHeight + epochPeriod == height, "incorrect height");
-        _createEpochValidators(curEpochIdx + 1, height, vals, powers);
+        _setEpochValidators(curEpochIdx + 1, vals, powers);
+        _perEpochReward(epochs[epochPosition].curEpochVals, produceAmountList);
     }
 
     /**
      * Create validator set for an epoch
      * @param _epochIdx the index of epoch to propose validators
      */
-    function _createEpochValidators(
+    function _setEpochValidators(
         uint256 _epochIdx,
-        uint256 _epochHeight,
         address[] memory _epochSigners,
         uint256[] memory _epochVotingPowers
     ) internal {
-        require(_epochIdx > curEpochIdx, "epoch too old");
-
+        require(_epochIdx == curEpochIdx + 1, "epoch too old");
         // Check if the epoch validators are from proposed.
         // This means that the 2/3+ validators have accepted the proposed validators from the contract.
         require(_epochSigners.length == _epochVotingPowers.length, "incorrect length");
 
         uint256 position = _epochPosition(_epochIdx);
-        // TODO: add rewards to validators
 
         curEpochIdx = _epochIdx;
-        curEpochHeight = _epochHeight;
         epochs[position].curEpochVals = _epochSigners;
         epochs[position].curVotingPowers = _epochVotingPowers;
     }
 
-    function perEpochReward(address[] memory rewardVals, uint256[] memory votePowers) internal {
-        uint256 totalPower = totalVotePowers(votePowers);
+    function _totalProduceBlock(uint256[] memory produceBlocks) internal pure returns (uint256 total) {
+        for (uint256 i = 0; i < produceBlocks.length; i++) {
+            total += produceBlocks[i];
+        }
+    }
+
+    function _validatorRewardShare(
+        uint256 epochReward,
+        uint256 produceAmount,
+        uint256 totalProduceAmount
+    ) internal pure returns (uint256) {
+        return (epochReward * produceAmount) / totalProduceAmount;
+    }
+
+    function _perEpochReward(address[] memory rewardVals, uint256[] memory produceAmountList) internal {
         uint256 epochReward = w3qErc20.perEpochReward();
 
         // Calculate the amount of tokens to reward validator and delegators
@@ -114,7 +184,11 @@ contract LightClient is ILightClient, Ownable {
             uint256 valShares = staking.getValidatorShare(valAddr);
             address[] memory delAddrs = staking.getDelegatorAddrs(valAddr);
 
-            uint256 totalRewardAmount = (epochReward * votePowers[i]) / totalPower;
+            uint256 totalRewardAmount = _validatorRewardShare(
+                epochReward,
+                produceAmountList[i],
+                _totalProduceBlock(produceAmountList)
+            );
             uint256 valRewardAmount = totalRewardAmount;
 
             for (uint256 j = 0; j < delAddrs.length; j++) {
@@ -156,8 +230,8 @@ contract LightClient is ILightClient, Ownable {
         epochPeriod = _epochPeriod;
     }
 
-    function getNextEpochHeight() external view override returns (uint256 height) {
-        return curEpochHeight + epochPeriod;
+    function getNextEpochHeight() public view override returns (uint256 height) {
+        return curEpochHeight() + epochPeriod;
     }
 
     function getStaking() external view override returns (address) {
@@ -169,15 +243,13 @@ contract LightClient is ILightClient, Ownable {
     }
 
     function getEpochIdx(uint256 height) public view override returns (uint256) {
+        require(isInHeightRange(height), "out of height range");
+        // Reduce the times of Sload
         uint256 _epochPeriod = epochPeriod;
-        uint256 _tmp = curEpochHeight + _epochPeriod;
-        require(height <= _tmp, "height too high");
-        uint256 _distance = (_tmp - height) / _epochPeriod;
-        require(_distance < TOTAL_EPOCH, "out of height range");
-        return curEpochIdx - _distance;
+        return (height + _epochPeriod - 1) / _epochPeriod;
     }
 
-    function checkHeightRange(uint256 height) public view override returns (bool) {
+    function isInHeightRange(uint256 height) public view override returns (bool) {
         (uint256 min, uint256 max) = heightRange();
         if (height >= min && height <= max) {
             return true;
@@ -196,28 +268,60 @@ contract LightClient is ILightClient, Ownable {
     function heightRange() public view override returns (uint256 min, uint256 max) {
         min = _minHeight();
         max = _maxHeight();
-        // when the curEpochHeight is 10000 and TOTAL_EPOCH = 2,
+        // when the latestEpochHeight is 10000 and TOTAL_EPOCH = 2,
         // the range of the block ,can be verified by contract, is [1,20000]
-
-        return (min, max);
     }
 
     function _minHeight() internal view returns (uint256) {
-        uint256 _curEpochHeight = curEpochHeight;
-        uint256 _epochPeriod = epochPeriod;
-
-        uint256 _range = (TOTAL_EPOCH - 1) * _epochPeriod;
-        uint256 minHeight = 0;
-        if (_curEpochHeight >= _range) {
-            minHeight = _curEpochHeight - _range + 1;
+        uint256 _minEpochId = minEpochIdx();
+        if (_minEpochId == 0) {
+            return 0;
+        } else {
+            return (_minEpochId - 1) * epochPeriod + 1;
         }
-        return minHeight;
     }
 
     function _maxHeight() internal view returns (uint256) {
-        uint256 _curEpochHeight = curEpochHeight;
-        uint256 _epochPeriod = epochPeriod;
+        return curEpochHeight() + epochPeriod;
+    }
 
-        return _curEpochHeight + _epochPeriod;
+    /**
+     * @notice Calculate the height of EpochHeight by epochIdx and epochPeriod.
+     * Their relationship is as follows: epochHeight = (epochIdx - 1) * epochPeriod
+     */
+    function _deriveEpochHeight(uint256 _epochIdx, uint256 _epochPeriod) internal pure returns (uint256) {
+        require(_epochIdx != 0, "epochIdx can not be 0");
+        uint256 _curEpochHeight = (_epochIdx - 1) * _epochPeriod;
+        return _curEpochHeight;
+    }
+
+    function curEpochHeight() public view override returns (uint256) {
+        return _deriveEpochHeight(curEpochIdx, epochPeriod);
+    }
+
+    function proveTx(uint256 height, ILightClient.Proof memory proof) external view override returns (bool) {
+        bytes32 txRoot = getTxRoot(height);
+        return MerklePatriciaProof.verify(proof.rlpValue, proof.rlpParentNodes, proof.encodePath, txRoot);
+    }
+
+    function proveReceipt(uint256 height, ILightClient.Proof memory proof) external view override returns (bool) {
+        bytes32 recRoot = getReceiptRoot(height);
+        return MerklePatriciaProof.verify(proof.rlpValue, proof.rlpParentNodes, proof.encodePath, recRoot);
+    }
+
+    function getStateRoot(uint256 height) public view override returns (bytes32) {
+        return headCores[height].Root;
+    }
+
+    function getTxRoot(uint256 height) public view override returns (bytes32) {
+        return headCores[height].TxHash;
+    }
+
+    function getReceiptRoot(uint256 height) public view override returns (bytes32) {
+        return headCores[height].ReceiptHash;
+    }
+
+    function blockExist(uint256 height) public view override returns (bool) {
+        return headHashes[height] != bytes32(0);
     }
 }

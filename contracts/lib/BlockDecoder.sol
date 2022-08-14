@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "./RLPReader.sol";
 import "./RLPEncode.sol";
+import "./Memory.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 library BlockDecoder {
@@ -10,6 +11,9 @@ library BlockDecoder {
     using RLPReader for RLPReader.Iterator;
     using RLPReader for bytes;
     using Strings for uint256;
+
+    // Size of a word, in bytes.
+    uint256 internal constant WORD_SIZE = 32;
 
     struct HeadCore {
         // bytes32 HeadHash;
@@ -165,7 +169,6 @@ library BlockDecoder {
         uint256 idx;
         uint256 actualLen = validators.length;
         for (uint256 i = 0; i < commit.Signatures.length; i++) {
-
             if (lookUpByIndex) {
                 require(commit.Signatures[i].ValidatorAddress == validators[i], "validator no exist");
                 idx = i;
@@ -378,6 +381,40 @@ library BlockDecoder {
         cs.ValidatorAddress = property(list, 1).toAddress();
         cs.TimestampMs = uint64(property(list, 2).toUint());
         cs.Signature = property(list, 3).toBytes();
+    }
+
+    bytes public constant EXTRA_PREFIX = "HeaderNumber";
+    uint8 public constant HEADER_NUMBER_HASH_LEN = 40;
+
+    // the Extra Data with two format:
+    // first: rlp(produce list)
+    // second: "HeaderNumber",HeaderNumber[8byte],HeaderHash[32byte],rlp(produce list)
+    function decodeExtra(bytes memory headerRLPBytes) internal pure returns (uint256[] memory) {
+        RLPReader.RLPItem[] memory list = decodeToHeaderList(headerRLPBytes);
+        RLPReader.RLPItem memory item = list[uint8(HeaderProperty.Extra)];
+        bytes memory extraData = item.toBytes();
+        (bytes memory res, ) = cutExtraPrefix(extraData);
+        return res.toRlpItem().toUintArray();
+    }
+
+    function cutExtraPrefix(bytes memory extraData) internal pure returns (bytes memory, bool) {
+        bytes memory prefix = EXTRA_PREFIX;
+        if (Memory.equals(Memory.dataPtr(prefix), Memory.dataPtr(extraData), EXTRA_PREFIX.length)) {
+            uint256 prefixLen = EXTRA_PREFIX.length + HEADER_NUMBER_HASH_LEN;
+            require(extraData.length > prefixLen, "data too short");
+            uint256 stateLen = extraData.length - prefixLen;
+            bytes memory dataWithNoPrefix = new bytes(stateLen);
+            Memory.copy(Memory.dataPtr(extraData) + prefixLen, Memory.dataPtr(dataWithNoPrefix), stateLen);
+            return (dataWithNoPrefix, true);
+        }
+        return (extraData, false);
+    }
+
+    function decodeRLPExtra(bytes memory headerRLPBytes) internal pure returns (bytes memory) {
+        RLPReader.RLPItem[] memory list = decodeToHeaderList(headerRLPBytes);
+        RLPReader.RLPItem memory item = list[uint8(HeaderProperty.Extra)];
+        bytes memory res = item.toRlpBytes();
+        return res;
     }
 
     function decodeNextValidators(bytes memory headerRLPBytes) internal pure returns (address[] memory) {

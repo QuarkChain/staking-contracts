@@ -24,6 +24,18 @@ contract BlockDecoderTest {
         return BlockDecoder.decodeValidatorData(rlpbytes.decodeToHeaderList());
     }
 
+    function DecodeExtraTest(bytes memory rlpbytes) public pure returns (uint256[] memory) {
+        return BlockDecoder.decodeExtra(rlpbytes);
+    }
+
+     function DecodeRLPExtraTest(bytes memory rlpbytes) public pure returns (bytes memory) {
+        return BlockDecoder.decodeRLPExtra(rlpbytes);
+    }
+
+    function CutExtraPrefixTest(bytes memory extra) public pure returns (bytes memory,bool) {
+        return BlockDecoder.cutExtraPrefix(extra);
+    }
+
     function DecodeNextValidatorsTest(bytes memory rlpbytes) public pure returns (address[] memory) {
         return BlockDecoder.decodeNextValidators(rlpbytes);
     }

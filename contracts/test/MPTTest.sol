@@ -16,17 +16,20 @@ contract MPTTest {
         return value.verify(encodedPath, rlpParentNodes, root);
     }
 
-    function decodeReceipt(bytes memory value) public pure returns (ReceiptDecoder.Receipt memory){
+    function getNibbleArray(bytes memory b) public pure returns (bytes memory) {
+        return MerklePatriciaProof._getNibbleArray(b);
+    } 
+
+    function decodeReceipt(bytes memory value) public pure returns (ReceiptDecoder.Receipt memory) {
         return value.decodeReceipt();
     }
 }
 
-contract ReceiptTest{
-
+contract ReceiptTest {
     uint256 public a;
-    event setEvent (string indexed name, uint256 setValue);
+    event setEvent(string indexed name, uint256 setValue);
 
-    function set(uint _a) public {
+    function set(uint256 _a) public {
         emit setEvent("set", _a);
         a = _a;
     }
