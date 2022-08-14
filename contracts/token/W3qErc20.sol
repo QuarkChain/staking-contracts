@@ -5,13 +5,13 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 // import "./interfaces/IW3qProver.sol";
-import "../W3qProver.sol";
+import "../LightClient.sol";
 import "../lib/ReceiptDecoder.sol";
 
 contract W3qERC20 is ERC20Pausable, Ownable {
 
     using ReceiptDecoder for bytes;
-    W3qProver public prover;
+    LightClient public prover;
 
     mapping(uint256=>bool) public burnNonceUsed;
     uint256 public constant PER_EPOCH_REWARD = 1e20;
@@ -41,7 +41,7 @@ contract W3qERC20 is ERC20Pausable, Ownable {
         emit burnToken(account, amount);
     }
 
-    function mintToBridge(uint256 height, IW3qProver.Proof memory proof,uint256 logIdx) public {
+    function mintToBridge(uint256 height, ILightClient.Proof memory proof,uint256 logIdx) public {
         require(prover.proveReceipt(height,proof),"invalid receipt");
         ReceiptDecoder.Receipt memory receipt = proof.rlpValue.decodeReceipt();
         // verify contract addr on origin chain 
