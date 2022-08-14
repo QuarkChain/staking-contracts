@@ -313,7 +313,7 @@ describe("light client test", function () {
     const revertHeadList = [];
     revertHeadList.push(normalHead2);
     await expect(submitNormalHead(revertHeadList, epochs_wallet, period, test)).to.be.revertedWith(
-      "both NextValidators and NextValidatorPowers should not be empty"
+      "incorrect length"
     );
 
     // begin submit
@@ -321,6 +321,7 @@ describe("light client test", function () {
   });
 
   it("submit epoch head out-of-order signatures", async function () {
+    await w3q.transferOwnership(test.address);
     const wallets = [];
     const vals = [];
     const powers = [];
