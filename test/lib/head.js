@@ -127,6 +127,15 @@ class Commit {
   genCommitRlp() {
     return rlpdata(Object.values(this));
   }
+
+  shuffleSigsOrder() {
+    let newSigs = []
+    for (let i=this.signatures.length-1 ; i>=0 ;i--){
+      newSigs.push(this.signatures[i])
+    }
+    this.signatures = newSigs
+  }
+
 }
 
 async function signVotes(_wallets, _commit) {

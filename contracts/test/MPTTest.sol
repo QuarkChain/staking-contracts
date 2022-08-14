@@ -16,6 +16,10 @@ contract MPTTest {
         return value.verify(encodedPath, rlpParentNodes, root);
     }
 
+    function getNibbleArray(bytes memory b) public pure returns (bytes memory) {
+        return MerklePatriciaProof._getNibbleArray(b);
+    } 
+
     function decodeReceipt(bytes memory value) public pure returns (ReceiptDecoder.Receipt memory) {
         return value.decodeReceipt();
     }
