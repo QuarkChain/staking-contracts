@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "./RLPReader.sol";
 import "./RLPEncode.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
+import "../interfaces/ILightClient.sol";
 
 library ReceiptDecoder {
     using RLPReader for RLPReader.RLPItem;
@@ -24,7 +25,28 @@ library ReceiptDecoder {
         bytes data;
     }
 
-    function decodeReceipt(bytes memory rlpReceipt) internal pure returns (Receipt memory rec) {
+        
+    function cutTxtype(bytes memory rlpReceiptWithPrefix) internal pure returns(bytes memory rlpReceipt){
+        uint256 prefix;
+        assembly {
+            prefix := mload(add(rlpReceiptWithPrefix,0x20))
+            prefix := shr(0xf8,prefix)
+        }
+
+        if (prefix==1 || prefix==2){
+            assembly{
+                let len := mload(rlpReceiptWithPrefix)
+                let actualLen := sub(len,1)
+                rlpReceipt := add(rlpReceiptWithPrefix,1)
+                mstore(rlpReceipt,actualLen)
+            }
+        }else{
+            rlpReceipt = rlpReceiptWithPrefix;
+        }
+    }
+
+    function decodeReceipt(bytes memory rlpReceiptWithPrefix) internal pure returns (Receipt memory rec) {
+        bytes memory rlpReceipt = cutTxtype(rlpReceiptWithPrefix);
         RLPReader.RLPItem[] memory list = rlpReceipt.toRlpItem().toList();
 
         rec.root = list[0].toBytes();
@@ -52,4 +74,12 @@ library ReceiptDecoder {
             data[i] = bytes32(list[i].toUint());
         }
     }
+
+    function decodeProof(bytes memory rlpProofPath) internal pure returns(ILightClient.Proof memory prf){
+        RLPReader.RLPItem[] memory list = rlpProofPath.toRlpItem().toList();
+        prf.value = list[0].toBytes();
+        prf.proofPath = list[1].toBytes();
+        prf.hpKey = list[2].toBytes();
+    }
+
 }

@@ -16,14 +16,15 @@ contract W3qERC20 is ERC20Pausable, Ownable {
     mapping(uint256=>bool) public burnNonceUsed;
     uint256 public constant PER_EPOCH_REWARD = 1e20;
 
-    address public tokenOnWeb3q;
+    address public constant tokenOnWeb3q = 0x0000000000000000000000000000000003330002;
     mapping (uint256 => bool) nonceUsed;
 
     event burnToken(address indexed owner, uint256 amount);
     event mintToken(uint256 indexed nonce, uint256 indexed logIdx , address indexed to, uint256 amount);
 
 
-    constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
+    constructor(string memory name, string memory symbol)ERC20(name, symbol) {
+    }
 
     function mint(address account, uint256 amount) public onlyOwner {
         _mint(account, amount);
@@ -41,9 +42,14 @@ contract W3qERC20 is ERC20Pausable, Ownable {
         emit burnToken(account, amount);
     }
 
+    function setProver(LightClient addr)public {
+        prover = addr;
+    }
+
+
     function mintToBridge(uint256 height, ILightClient.Proof memory proof,uint256 logIdx) public {
         require(prover.proveReceipt(height,proof),"invalid receipt");
-        ReceiptDecoder.Receipt memory receipt = proof.rlpValue.decodeReceipt();
+        ReceiptDecoder.Receipt memory receipt = proof.value.decodeReceipt();
         // verify contract addr on origin chain 
         require(receipt.logs[logIdx].addr == tokenOnWeb3q,"addr no match");
         //veridy nonce

@@ -301,12 +301,12 @@ contract LightClient is ILightClient, Ownable {
 
     function proveTx(uint256 height, ILightClient.Proof memory proof) external view override returns (bool) {
         bytes32 txRoot = getTxRoot(height);
-        return MerklePatriciaProof.verify(proof.rlpValue, proof.rlpParentNodes, proof.encodePath, txRoot);
+        return MerklePatriciaProof.verify(proof.value, proof.proofPath, proof.hpKey, txRoot);
     }
 
     function proveReceipt(uint256 height, ILightClient.Proof memory proof) external view override returns (bool) {
         bytes32 recRoot = getReceiptRoot(height);
-        return MerklePatriciaProof.verify(proof.rlpValue, proof.rlpParentNodes, proof.encodePath, recRoot);
+        return MerklePatriciaProof.verify(proof.value, proof.hpKey, proof.proofPath, recRoot);
     }
 
     function getStateRoot(uint256 height) public view override returns (bytes32) {
@@ -318,6 +318,7 @@ contract LightClient is ILightClient, Ownable {
     }
 
     function getReceiptRoot(uint256 height) public view override returns (bytes32) {
+        require(blockExist(height),"block no exist");
         return headCores[height].ReceiptHash;
     }
 
