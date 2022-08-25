@@ -34,7 +34,7 @@ contract W3qERC20 is ERC20Pausable, Ownable {
         return PER_EPOCH_REWARD;
     }
 
-    function burnToBridge(address account , uint256 amount) public{
+    function burnFroBridgeToken(address account , uint256 amount) public{
        
         // _spendAllowance(account, msg.sender, amount);
         _burn(account, amount);
@@ -47,7 +47,7 @@ contract W3qERC20 is ERC20Pausable, Ownable {
     }
 
 
-    function mintToBridge(uint256 height, ILightClient.Proof memory proof,uint256 logIdx) public {
+    function mintForBridgeToken(uint256 height, ILightClient.Proof memory proof,uint256 logIdx) public {
         require(prover.proveReceipt(height,proof),"invalid receipt");
         ReceiptDecoder.Receipt memory receipt = proof.value.decodeReceipt();
         // verify contract addr on origin chain 
@@ -62,6 +62,24 @@ contract W3qERC20 is ERC20Pausable, Ownable {
         _mint(to,amount);
 
         emit mintToken(nonce,logIdx,to,amount);
+    }
+
+    function batchMintForBridgeToken(uint256 height, ILightClient.Proof[] memory proofs,uint256[] memory logIdxs) public {
+        for (uint256 i = 0; i < proofs.length ; i ++) {
+           mintForBridgeToken(height,proofs[i],logIdxs[i]);
+        }
+    }
+
+    function batchMintWhenSubmitHeader(
+        uint256 height,
+        bytes memory headBytes,
+        bytes memory commitBytes,
+        bool lookByIndex,
+        ILightClient.Proof[] memory proofs,
+        uint256[] memory logIdxs
+    ) public {
+        prover.submitHeader(height, headBytes, commitBytes, lookByIndex);
+        batchMintForBridgeToken(height,proofs,logIdxs);
     }
 
 }

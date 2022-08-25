@@ -47,6 +47,7 @@ contract W3qNative {
     function burnNative()public payable {
         (bool succeed , ) = systemOptIn.call(abi.encodeWithSignature("burnNative(uint256)",msg.value));
         require(succeed,"burn native token error");
+        burnNonce ++;
         emit burnNativeToken(burnNonce, msg.sender, msg.value);
     }
 
