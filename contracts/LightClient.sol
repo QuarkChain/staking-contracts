@@ -181,25 +181,14 @@ contract LightClient is ILightClient, Ownable {
         for (uint256 i = 0; i < rewardVals.length; i++) {
             address valAddr = rewardVals[i];
 
-            uint256 valShares = staking.getValidatorShare(valAddr);
-            address[] memory delAddrs = staking.getDelegatorAddrs(valAddr);
-
             uint256 totalRewardAmount = _validatorRewardShare(
                 epochReward,
                 produceAmountList[i],
                 _totalProduceBlock(produceAmountList)
             );
             uint256 valRewardAmount = totalRewardAmount;
-
-            for (uint256 j = 0; j < delAddrs.length; j++) {
-                address delAddr = delAddrs[j];
-                uint256 delShare = staking.getDelegatorShare(valAddr, delAddr);
-                uint256 delRewardAmount = (totalRewardAmount * delShare) / valShares;
-
-                // reward delegator
-                w3qErc20.mint(delAddr, delRewardAmount);
-                valRewardAmount -= delRewardAmount;
-            }
+            
+            staking.rewardValidator(valAddr,valRewardAmount);
 
             // reward validator
             w3qErc20.mint(valAddr, valRewardAmount);
