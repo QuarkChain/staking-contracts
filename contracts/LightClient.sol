@@ -177,6 +177,8 @@ contract LightClient is ILightClient, Ownable {
     function _perEpochReward(address[] memory rewardVals, uint256[] memory produceAmountList) internal {
         uint256 epochReward = w3qErc20.perEpochReward();
 
+
+         uint256 totalProduceAmount = _totalProduceBlock(produceAmountList);
         // Calculate the amount of tokens to reward validator and delegators
         for (uint256 i = 0; i < rewardVals.length; i++) {
             address valAddr = rewardVals[i];
@@ -184,14 +186,14 @@ contract LightClient is ILightClient, Ownable {
             uint256 totalRewardAmount = _validatorRewardShare(
                 epochReward,
                 produceAmountList[i],
-                _totalProduceBlock(produceAmountList)
+                totalProduceAmount
             );
             uint256 valRewardAmount = totalRewardAmount;
             
             staking.rewardValidator(valAddr,valRewardAmount);
 
             // reward validator
-            w3qErc20.mint(valAddr, valRewardAmount);
+            w3qErc20.mint(address(staking), valRewardAmount);
         }
     }
 

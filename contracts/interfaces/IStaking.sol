@@ -12,6 +12,8 @@ interface IStaking {
 
     function getValidatorShare(address _valAddr) external view returns (uint256);
 
+    function getValidatorTokens(address _valAddr) external view returns (uint256);
+
     function getDelegatorShare(address _valAddr, address _delAddr) external view returns (uint256 _share);
 
     function getDelegatorAddrs(address _valAddr) external view returns (address[] memory);

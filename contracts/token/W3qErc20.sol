@@ -25,7 +25,7 @@ contract W3qERC20 is ERC20Pausable, Ownable {
 
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
 
-    function mint(address account, uint256 amount) public onlyOwner {
+    function mint(address account, uint256 amount) public onlyOwner virtual {
         _mint(account, amount);
     }
 

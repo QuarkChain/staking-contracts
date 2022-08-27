@@ -99,7 +99,7 @@ contract Staking is Pauser, Whitelist {
      * @notice config the lightClient address
      * @param _lightClient lightClient contract address
      */
-    function setLightClient(address _lightClient)public {
+    function setLightClient(address _lightClient)public onlyOwner{
         lightClient = _lightClient;
     }
 
