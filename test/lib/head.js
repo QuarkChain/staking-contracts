@@ -205,7 +205,7 @@ function selectWallet(walletSet, head, period) {
   return walletSet[index];
 }
 
-async function checkSubmitEpochs(instance, epoch_num, validatorWallets) {
+async function checkSubmitEpochs(w3q,w3qOwner,staking,instance, epoch_num, validatorWallets) {
   const wallets = [];
   const vals = [];
   const powers = [];
@@ -218,6 +218,8 @@ async function checkSubmitEpochs(instance, epoch_num, validatorWallets) {
     powers.push("0x01"); //10
     initpowers.push("0x01"); //10 * 10^18
   }
+
+  await initStakingValidator(w3q,staking,w3qOwner,wallets);
 
   //1. initalize light client
   const initHeight = 0;
@@ -268,6 +270,19 @@ async function checkSubmitEpochs(instance, epoch_num, validatorWallets) {
   }
 }
 
+async function initStakingValidator(w3q,staking,w3qOwner,signers){
+  const w3qUint = BigNumber.from("1000000000000000000");
+  let mintAmount = w3qUint.mul(100);
+
+  for (let i = 0; i < signers.length; i++) {
+    let _wallet = signers[i];
+    await w3q.mint(_wallet.address, mintAmount);
+    await w3q.connect(_wallet).approve(staking.address, mintAmount);
+    await staking.connect(_wallet).initializeValidator(_wallet.address, _minSelfDelegation, 0);
+  }
+}
+
+
 exports.check = check;
 exports.checkArray = checkArray;
 exports.generateSignature = generateSignature;
@@ -283,3 +298,4 @@ exports.CHAIN_ID = CHAIN_ID;
 exports.submitNormalHead = submitNormalHead;
 exports.selectWallet = selectWallet;
 exports.checkSubmitEpochs = checkSubmitEpochs;
+exports.initStakingValidator = initStakingValidator;
