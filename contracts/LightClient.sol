@@ -131,7 +131,7 @@ contract LightClient is ILightClient, Ownable {
         uint256[] memory powers = _epochHeaderBytes.decodeNextValidatorPowers();
         uint256[] memory produceAmountList = _epochHeaderBytes.decodeExtra();
         require(
-            vals.length > 0 && vals.length == powers.length && vals.length == powers.length,
+            vals.length > 0 && vals.length == powers.length && epochs[epochPosition].curEpochVals.length == produceAmountList.length,
             "incorrect length"
         );
 
