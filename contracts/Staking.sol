@@ -49,7 +49,7 @@ contract Staking is Pauser, Whitelist {
     event Undelegated(address indexed valAddr, address indexed delAddr, uint256 amount);
     event Slash(address indexed valAddr, uint64 nonce, uint256 slashAmt);
     event SlashAmtCollected(address indexed recipient, uint256 amount);
-    event RewardValidator(address indexed valAddr,uint256 valTokens);
+    event RewardValidator(address indexed valAddr, uint256 valTokens);
 
     /**
      * @notice Staking constructor
@@ -95,11 +95,11 @@ contract Staking is Pauser, Whitelist {
      * External and Public Functions *
      *********************************/
 
-    /** 
+    /**
      * @notice config the lightClient address
      * @param _lightClient lightClient contract address
      */
-    function setLightClient(address _lightClient)public onlyOwner{
+    function setLightClient(address _lightClient) public onlyOwner {
         lightClient = _lightClient;
     }
 
@@ -213,7 +213,7 @@ contract Staking is Pauser, Whitelist {
     }
 
     function rewardValidator(address _valAddr, uint256 _tokens) public {
-        require(msg.sender == lightClient,"Only lightClient can call");
+        require(msg.sender == lightClient, "Only lightClient can call");
         require(_tokens >= dt.CELR_DECIMAL, "Minimal amount is 1 CELR");
 
         dt.Validator storage validator = validators[_valAddr];

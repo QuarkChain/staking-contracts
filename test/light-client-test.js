@@ -70,14 +70,13 @@ describe("light client test", function () {
 
     epochPeriod = 10000;
     let factory2 = await ethers.getContractFactory("LightClient");
-    test = await factory2.deploy(_epoch_period, staking.address,w3q.address);
+    test = await factory2.deploy(_epoch_period, staking.address, w3q.address);
 
     await test.deployed();
     await staking.setLightClient(test.address);
   });
 
   it("reward to validators with w3q", async function () {
-
     let factory3 = await ethers.getContractFactory("W3qERC20");
     w3q = await factory3.connect(owner).deploy("W3Q ERC20 Token", "W3Q");
     await w3q.deployed();
@@ -96,7 +95,6 @@ describe("light client test", function () {
       1000
     );
     await staking_test.deployed();
-
 
     factory = await ethers.getContractFactory("LightClientTest");
     let light_client_test = await factory.connect(owner).deploy(_epoch_period, staking_test.address, w3q.address);
@@ -121,7 +119,6 @@ describe("light client test", function () {
       await staking_test.connect(_wallet).delegate(_wallet.address, delegateAmount);
       staking_w3q_balance = staking_w3q_balance.add(mintAmount);
 
-
       await staking_test.connect(_wallet).bondValidator();
       check("W3Q_BALANCE", await w3q.balanceOf(_wallet.address), 0);
       check("W3Q_BALANCE", await w3q.balanceOf(staking_test.address), staking_w3q_balance);
@@ -134,27 +131,25 @@ describe("light client test", function () {
 
     let produces = powers;
 
-    console.log(
-      "perEpochWard",
-      (await w3q.perEpochReward()).toString(),
-    );
-    console.log(
-      "w3q balance:",
-      (await w3q.balanceOf(staking_test.address)).toString(),
-    );
-    
-    let staking_w3q_origin_blanace =  await w3q.balanceOf(staking_test.address);
+    console.log("perEpochWard", (await w3q.perEpochReward()).toString());
+    console.log("w3q balance:", (await w3q.balanceOf(staking_test.address)).toString());
+
+    let staking_w3q_origin_blanace = await w3q.balanceOf(staking_test.address);
     let _perEpochReward = await w3q.perEpochReward();
     await w3q.connect(owner).transferOwnership(light_client_test.address);
     await light_client_test.epochReward(produces);
-  
+
     console.log("_________________________After_Reward________________________");
 
     let staking_w3q_latest_blanace = await w3q.balanceOf(staking_test.address);
-    check("Staking W3q Balance",staking_w3q_origin_blanace.add(_perEpochReward),staking_w3q_latest_blanace);
+    check("Staking W3q Balance", staking_w3q_origin_blanace.add(_perEpochReward), staking_w3q_latest_blanace);
     for (let i = 0; i < signers.length; i++) {
-      let tokenRewarded = _perEpochReward.div(BigNumber.from(signers.length));                                                 
-      check("Validator Token", await staking_test.getValidatorTokens(signers[i].address),mintAmount.add(tokenRewarded));
+      let tokenRewarded = _perEpochReward.div(BigNumber.from(signers.length));
+      check(
+        "Validator Token",
+        await staking_test.getValidatorTokens(signers[i].address),
+        mintAmount.add(tokenRewarded)
+      );
     }
   });
 
@@ -184,7 +179,7 @@ describe("light client test", function () {
   it("submit epoch heads ", async function () {
     let epochs_wallet = [];
     await w3q.connect(owner).transferOwnership(test.address);
-    await checkSubmitEpochs(w3q,owner,staking,test, 10, epochs_wallet);
+    await checkSubmitEpochs(w3q, owner, staking, test, 10, epochs_wallet);
   });
 
   it("check getEpochIdx", async function () {
@@ -231,7 +226,7 @@ describe("light client test", function () {
     try {
       await w3q.connect(owner).transferOwnership(test.address);
       const epochs_wallet = [];
-      await checkSubmitEpochs(w3q,owner,staking,test, 6, epochs_wallet);
+      await checkSubmitEpochs(w3q, owner, staking, test, 6, epochs_wallet);
 
       let [currentEpochIdx, ,] = await test.getCurrentEpoch();
       let period = (await test.epochPeriod()).toNumber();
@@ -282,7 +277,7 @@ describe("light client test", function () {
 
     // epochs_wallet[i] can verify block in range of [i * epochPeriod - epochPeriod +1,i * epochPeriod]
     let epochs_wallet = [];
-    await checkSubmitEpochs(w3q,owner,staking, test, 6, epochs_wallet);
+    await checkSubmitEpochs(w3q, owner, staking, test, 6, epochs_wallet);
     // console.log("epochs_wallet:",epochs_wallet.length)
     let [currentEpochIdx, ,] = await test.getCurrentEpoch();
     let minEpochIdx = (await test.minEpochIdx()).toNumber();
@@ -337,9 +332,7 @@ describe("light client test", function () {
     normalHead2.setBlockHeight(BigNumber.from(CurrentEpochEnd).toHexString());
     const revertHeadList = [];
     revertHeadList.push(normalHead2);
-    await expect(submitNormalHead(revertHeadList, epochs_wallet, period, test)).to.be.revertedWith(
-      "incorrect length"
-    );
+    await expect(submitNormalHead(revertHeadList, epochs_wallet, period, test)).to.be.revertedWith("incorrect length");
 
     // begin submit
     await submitNormalHead(headList, epochs_wallet, period, test);
@@ -395,7 +388,7 @@ describe("light client test", function () {
       commit2.shuffleSigsOrder();
       let commitBytes2 = commit2.genCommitRlp();
 
-      let tx2 = await test.submitHeader(epochHeight2,rlpHeader2, commitBytes2, false);
+      let tx2 = await test.submitHeader(epochHeight2, rlpHeader2, commitBytes2, false);
       let receipt2 = await tx2.wait();
       console.log("EPOCHID:", epochIdx, " VALNUM:", valNum, " GasUsed:", receipt2.gasUsed.toString());
 

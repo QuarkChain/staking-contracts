@@ -117,7 +117,7 @@ contract LightClient is ILightClient, Ownable {
 
         // Update Validators if the height of the submitted block header is equal to the height of the next EpochHeight
         if (decodedHeight == getNextEpochHeight()) {
-            _updateEpochValidator(headBytes,_position);
+            _updateEpochValidator(headBytes, _position);
         }
 
         return (decodedHeight, headHash, core);
@@ -126,14 +126,11 @@ contract LightClient is ILightClient, Ownable {
     /**
      * Decode validator from headrlpbytes and create validator set for an epoch
      */
-    function _updateEpochValidator(bytes memory _epochHeaderBytes,uint256 epochPosition) internal {
+    function _updateEpochValidator(bytes memory _epochHeaderBytes, uint256 epochPosition) internal {
         address[] memory vals = _epochHeaderBytes.decodeNextValidators();
         uint256[] memory powers = _epochHeaderBytes.decodeNextValidatorPowers();
         uint256[] memory produceAmountList = _epochHeaderBytes.decodeExtra();
-        require(
-            vals.length > 0 && vals.length == powers.length && vals.length == powers.length,
-            "incorrect length"
-        );
+        require(vals.length > 0 && vals.length == powers.length && vals.length == powers.length, "incorrect length");
 
         _setEpochValidators(curEpochIdx + 1, vals, powers);
         _perEpochReward(epochs[epochPosition].curEpochVals, produceAmountList);
@@ -177,20 +174,15 @@ contract LightClient is ILightClient, Ownable {
     function _perEpochReward(address[] memory rewardVals, uint256[] memory produceAmountList) internal {
         uint256 epochReward = w3qErc20.perEpochReward();
 
-
-         uint256 totalProduceAmount = _totalProduceBlock(produceAmountList);
+        uint256 totalProduceAmount = _totalProduceBlock(produceAmountList);
         // Calculate the amount of tokens to reward validator and delegators
         for (uint256 i = 0; i < rewardVals.length; i++) {
             address valAddr = rewardVals[i];
 
-            uint256 totalRewardAmount = _validatorRewardShare(
-                epochReward,
-                produceAmountList[i],
-                totalProduceAmount
-            );
+            uint256 totalRewardAmount = _validatorRewardShare(epochReward, produceAmountList[i], totalProduceAmount);
             uint256 valRewardAmount = totalRewardAmount;
-            
-            staking.rewardValidator(valAddr,valRewardAmount);
+
+            staking.rewardValidator(valAddr, valRewardAmount);
 
             // reward validator
             w3qErc20.mint(address(staking), valRewardAmount);

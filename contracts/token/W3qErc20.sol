@@ -9,23 +9,21 @@ import "../LightClient.sol";
 import "../lib/ReceiptDecoder.sol";
 
 contract W3qERC20 is ERC20Pausable, Ownable {
-
     using ReceiptDecoder for bytes;
     LightClient public prover;
 
-    mapping(uint256=>bool) public burnNonceUsed;
+    mapping(uint256 => bool) public burnNonceUsed;
     uint256 public constant PER_EPOCH_REWARD = 1e20;
 
     address public tokenOnWeb3q;
-    mapping (uint256 => bool) nonceUsed;
+    mapping(uint256 => bool) nonceUsed;
 
     event burnToken(address indexed owner, uint256 amount);
-    event mintToken(uint256 indexed nonce, uint256 indexed logIdx , address indexed to, uint256 amount);
-
+    event mintToken(uint256 indexed nonce, uint256 indexed logIdx, address indexed to, uint256 amount);
 
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
 
-    function mint(address account, uint256 amount) public onlyOwner virtual {
+    function mint(address account, uint256 amount) public virtual onlyOwner {
         _mint(account, amount);
     }
 
@@ -33,29 +31,31 @@ contract W3qERC20 is ERC20Pausable, Ownable {
         return PER_EPOCH_REWARD;
     }
 
-    function burnToBridge(address account , uint256 amount) public{
-       
+    function burnToBridge(address account, uint256 amount) public {
         // _spendAllowance(account, msg.sender, amount);
         _burn(account, amount);
 
         emit burnToken(account, amount);
     }
 
-    function mintToBridge(uint256 height, ILightClient.Proof memory proof,uint256 logIdx) public {
-        require(prover.proveReceipt(height,proof),"invalid receipt");
+    function mintToBridge(
+        uint256 height,
+        ILightClient.Proof memory proof,
+        uint256 logIdx
+    ) public {
+        require(prover.proveReceipt(height, proof), "invalid receipt");
         ReceiptDecoder.Receipt memory receipt = proof.rlpValue.decodeReceipt();
-        // verify contract addr on origin chain 
-        require(receipt.logs[logIdx].addr == tokenOnWeb3q,"addr no match");
+        // verify contract addr on origin chain
+        require(receipt.logs[logIdx].addr == tokenOnWeb3q, "addr no match");
         //veridy nonce
         uint256 nonce = uint256(receipt.logs[logIdx].topics[1]);
-        require(!burnNonceUsed[nonce],"the burn nonce has been used");
+        require(!burnNonceUsed[nonce], "the burn nonce has been used");
         burnNonceUsed[nonce] = true;
-        //mint token 
+        //mint token
         address to = address(uint160(uint256(receipt.logs[logIdx].topics[2])));
-        uint256 amount = abi.decode(receipt.logs[logIdx].data,(uint256));
-        _mint(to,amount);
+        uint256 amount = abi.decode(receipt.logs[logIdx].data, (uint256));
+        _mint(to, amount);
 
-        emit mintToken(nonce,logIdx,to,amount);
+        emit mintToken(nonce, logIdx, to, amount);
     }
-
 }
