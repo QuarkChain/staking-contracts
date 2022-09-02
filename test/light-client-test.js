@@ -179,7 +179,7 @@ describe("light client test", function () {
   it("submit epoch heads ", async function () {
     let epochs_wallet = [];
     await w3q.connect(owner).transferOwnership(test.address);
-    await checkSubmitEpochs(w3q, owner, staking, test, 10, epochs_wallet);
+    await checkSubmitEpochs(test, 10, epochs_wallet);
   });
 
   it("check getEpochIdx", async function () {
@@ -226,7 +226,7 @@ describe("light client test", function () {
     try {
       await w3q.connect(owner).transferOwnership(test.address);
       const epochs_wallet = [];
-      await checkSubmitEpochs(w3q, owner, staking, test, 6, epochs_wallet);
+      await checkSubmitEpochs(test, 6, epochs_wallet);
 
       let [currentEpochIdx, ,] = await test.getCurrentEpoch();
       let period = (await test.epochPeriod()).toNumber();
@@ -277,7 +277,7 @@ describe("light client test", function () {
 
     // epochs_wallet[i] can verify block in range of [i * epochPeriod - epochPeriod +1,i * epochPeriod]
     let epochs_wallet = [];
-    await checkSubmitEpochs(w3q, owner, staking, test, 6, epochs_wallet);
+    await checkSubmitEpochs(test, 6, epochs_wallet);
     // console.log("epochs_wallet:",epochs_wallet.length)
     let [currentEpochIdx, ,] = await test.getCurrentEpoch();
     let minEpochIdx = (await test.minEpochIdx()).toNumber();

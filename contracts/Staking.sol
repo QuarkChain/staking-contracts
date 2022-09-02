@@ -214,10 +214,13 @@ contract Staking is Pauser, Whitelist {
 
     function rewardValidator(address _valAddr, uint256 _tokens) public {
         require(msg.sender == lightClient, "Only lightClient can call");
-        require(_tokens >= dt.CELR_DECIMAL, "Minimal amount is 1 CELR");
 
         dt.Validator storage validator = validators[_valAddr];
-        require(validator.status != dt.ValidatorStatus.Null, "Validator is not initialized");
+
+        // consider that any require() failure causes the lightclient.submitHead() to fail to process new epoch headers.
+        if (validator.status == dt.ValidatorStatus.Null) {
+            return;
+        }
         validator.tokens += _tokens;
         if (validator.status == dt.ValidatorStatus.Bonded) {
             bondedTokens += _tokens;
@@ -651,18 +654,6 @@ contract Staking is Pauser, Whitelist {
                 undelegationTokens,
                 withdrawableUndelegationTokens
             );
-    }
-
-    function getValidatorShare(address _valAddr) public view returns (uint256) {
-        return validators[_valAddr].shares;
-    }
-
-    function getDelegatorShare(address _valAddr, address _delAddr) public view returns (uint256 _share) {
-        return validators[_valAddr].delegators[_delAddr].shares;
-    }
-
-    function getDelegatorAddrs(address _valAddr) public view returns (address[] memory) {
-        return validators[_valAddr].delAddrs;
     }
 
     /**

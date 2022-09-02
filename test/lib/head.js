@@ -205,7 +205,7 @@ function selectWallet(walletSet, head, period) {
   return walletSet[index];
 }
 
-async function checkSubmitEpochs(w3q,w3qOwner,staking,instance, epoch_num, validatorWallets) {
+async function checkSubmitEpochs(instance, epoch_num, validatorWallets) {
   const wallets = [];
   const vals = [];
   const powers = [];
@@ -218,8 +218,6 @@ async function checkSubmitEpochs(w3q,w3qOwner,staking,instance, epoch_num, valid
     powers.push("0x01"); //10
     initpowers.push("0x01"); //10 * 10^18
   }
-
-  await initStakingValidator(w3q,staking,w3qOwner,wallets);
 
   //1. initalize light client
   const initHeight = 0;
