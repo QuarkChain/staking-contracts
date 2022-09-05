@@ -26,7 +26,7 @@ contract BlockDecoderTest {
         return BlockDecoder.decodeValidatorData(rlpbytes.decodeToHeaderList());
     }
 
-    function DecodeExtraTest(bytes memory rlpbytes) public pure returns (uint256[] memory) {
+    function DecodeExtraTest(bytes memory rlpbytes) public pure returns (uint256[] memory,bool succeed) {
         return BlockDecoder.decodeExtra(rlpbytes);
     }
 
