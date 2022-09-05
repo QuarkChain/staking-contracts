@@ -86,30 +86,6 @@ library Memory {
         uint256 dest,
         uint256 len
     ) internal view {
-        // Copy word-length chunks while possible
-        // Reverse copy to prevent out of memory bound error
-        // src = src + len;
-        // dest = dest + len;
-        // for (; len >= WORD_SIZE; len -= WORD_SIZE) {
-        //     dest -= WORD_SIZE;
-        //     src -= WORD_SIZE;
-
-        //     assembly {
-        //         mstore(dest, mload(src))
-        //     }
-        // }
-
-        // if (len == 0) {
-        //     return;
-        // }
-
-        // // Copy remaining bytes
-        // src = src - len;
-        // dest = dest - len;
-        // assembly {
-        //     mstore(dest, mload(src))
-        // }
-
         assembly{
             // Call precompiled contract to copy data
             if iszero(staticcall(gas(), 0x04, src, len, dest, len)) {
