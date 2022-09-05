@@ -187,16 +187,10 @@ contract LightClient is ILightClient, Ownable {
             uint256 valRewardAmount = totalRewardAmount;
 
             staking.rewardValidator(valAddr, valRewardAmount);
-
-            // reward validator
-            w3qErc20.mint(address(staking), valRewardAmount);
         }
-    }
 
-    function totalVotePowers(uint256[] memory votePowers) internal pure returns (uint256 sum) {
-        for (uint256 i = 0; i < votePowers.length; i++) {
-            sum += votePowers[i];
-        }
+        // reward validator
+        w3qErc20.mint(address(staking), epochReward);
     }
 
     function getCurrentEpoch()
