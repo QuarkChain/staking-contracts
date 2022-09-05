@@ -410,13 +410,6 @@ library BlockDecoder {
         return (extraData, false);
     }
 
-    function decodeRLPExtra(bytes memory headerRLPBytes) internal pure returns (bytes memory) {
-        RLPReader.RLPItem[] memory list = decodeToHeaderList(headerRLPBytes);
-        RLPReader.RLPItem memory item = list[uint8(HeaderProperty.Extra)];
-        bytes memory res = item.toRlpBytes();
-        return res;
-    }
-
     function decodeNextValidators(bytes memory headerRLPBytes) internal pure returns (address[] memory) {
         RLPReader.RLPItem[] memory list = decodeToHeaderList(headerRLPBytes);
         return _decodeNextValidators(list[uint8(HeaderProperty.NextValidators)]);
