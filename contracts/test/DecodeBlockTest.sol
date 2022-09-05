@@ -26,22 +26,22 @@ contract BlockDecoderTest {
         return BlockDecoder.decodeValidatorData(rlpbytes.decodeToHeaderList());
     }
 
-    function DecodeExtraTest(bytes memory rlpbytes) public view returns (uint256[] memory,bool succeed) {
+    function DecodeExtraTest(bytes memory rlpbytes) public view returns (uint256[] memory, bool succeed) {
         return BlockDecoder.decodeExtra(rlpbytes);
     }
 
-     function DecodeRLPExtraTest(bytes memory rlpbytes) public pure returns (bytes memory) {
+    function DecodeRLPExtraTest(bytes memory rlpbytes) public pure returns (bytes memory) {
         return decodeRLPExtra(rlpbytes);
     }
 
-     function decodeRLPExtra(bytes memory headerRLPBytes) internal pure returns (bytes memory) {
+    function decodeRLPExtra(bytes memory headerRLPBytes) internal pure returns (bytes memory) {
         RLPReader.RLPItem[] memory list = BlockDecoder.decodeToHeaderList(headerRLPBytes);
         RLPReader.RLPItem memory item = list[uint8(BlockDecoder.HeaderProperty.Extra)];
         bytes memory res = item.toRlpBytes();
         return res;
     }
 
-    function CutExtraPrefixTest(bytes memory extra) public view returns (bytes memory,bool) {
+    function CutExtraPrefixTest(bytes memory extra) public view returns (bytes memory, bool) {
         return BlockDecoder.cutExtraPrefix(extra);
     }
 

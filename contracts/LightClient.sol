@@ -129,7 +129,7 @@ contract LightClient is ILightClient, Ownable {
     function _updateEpochValidator(bytes memory _epochHeaderBytes, uint256 epochPosition) internal {
         address[] memory vals = _epochHeaderBytes.decodeNextValidators();
         uint256[] memory powers = _epochHeaderBytes.decodeNextValidatorPowers();
-        (uint256[] memory produceAmountList,) = _epochHeaderBytes.decodeExtra();
+        (uint256[] memory produceAmountList, ) = _epochHeaderBytes.decodeExtra();
         require(
             vals.length > 0 &&
                 vals.length == powers.length &&

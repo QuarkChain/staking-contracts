@@ -86,7 +86,7 @@ library Memory {
         uint256 dest,
         uint256 len
     ) internal view {
-        assembly{
+        assembly {
             // Call precompiled contract to copy data
             if iszero(staticcall(gas(), 0x04, src, len, dest, len)) {
                 revert(0, 0)
