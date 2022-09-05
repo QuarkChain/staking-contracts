@@ -389,7 +389,7 @@ library BlockDecoder {
     // the Extra Data with two format:
     // first: rlp(produce list)
     // second: "HeaderNumber",HeaderNumber[8byte],HeaderHash[32byte],rlp(produce list)
-    function decodeExtra(bytes memory headerRLPBytes) internal pure returns (uint256[] memory,bool) {
+    function decodeExtra(bytes memory headerRLPBytes) internal view returns (uint256[] memory,bool) {
         RLPReader.RLPItem[] memory list = decodeToHeaderList(headerRLPBytes);
         RLPReader.RLPItem memory item = list[uint8(HeaderProperty.Extra)];
         bytes memory extraData = item.toBytes();
@@ -398,7 +398,7 @@ library BlockDecoder {
         return (res.toRlpItem().toUintArray(),succeed);
     }
 
-    function cutExtraPrefix(bytes memory extraData) internal pure returns (bytes memory, bool) {
+    function cutExtraPrefix(bytes memory extraData) internal view returns (bytes memory, bool) {
         bytes memory prefix = EXTRA_PREFIX;
         if (Memory.equals(Memory.dataPtr(prefix), Memory.dataPtr(extraData), EXTRA_PREFIX.length)) {
             uint256 prefixLen = EXTRA_PREFIX.length + HEADER_NUMBER_HASH_LEN;

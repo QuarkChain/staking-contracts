@@ -85,29 +85,36 @@ library Memory {
         uint256 src,
         uint256 dest,
         uint256 len
-    ) internal pure {
+    ) internal view {
         // Copy word-length chunks while possible
         // Reverse copy to prevent out of memory bound error
-        src = src + len;
-        dest = dest + len;
-        for (; len >= WORD_SIZE; len -= WORD_SIZE) {
-            dest -= WORD_SIZE;
-            src -= WORD_SIZE;
+        // src = src + len;
+        // dest = dest + len;
+        // for (; len >= WORD_SIZE; len -= WORD_SIZE) {
+        //     dest -= WORD_SIZE;
+        //     src -= WORD_SIZE;
 
-            assembly {
-                mstore(dest, mload(src))
+        //     assembly {
+        //         mstore(dest, mload(src))
+        //     }
+        // }
+
+        // if (len == 0) {
+        //     return;
+        // }
+
+        // // Copy remaining bytes
+        // src = src - len;
+        // dest = dest - len;
+        // assembly {
+        //     mstore(dest, mload(src))
+        // }
+
+        assembly{
+            // Call precompiled contract to copy data
+            if iszero(staticcall(gas(), 0x04, src, len, dest, len)) {
+                revert(0, 0)
             }
-        }
-
-        if (len == 0) {
-            return;
-        }
-
-        // Copy remaining bytes
-        src = src - len;
-        dest = dest - len;
-        assembly {
-            mstore(dest, mload(src))
         }
     }
 
@@ -145,7 +152,7 @@ library Memory {
     // Creates a 'bytes memory' variable from the memory address 'addr', with the
     // length 'len'. The function will allocate new memory for the bytes array, and
     // the 'len bytes starting at 'addr' will be copied into that new memory.
-    function toBytes(uint256 addr, uint256 len) internal pure returns (bytes memory bts) {
+    function toBytes(uint256 addr, uint256 len) internal view returns (bytes memory bts) {
         bts = new bytes(len);
         uint256 btsptr;
         assembly {

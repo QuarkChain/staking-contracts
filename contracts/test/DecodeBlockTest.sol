@@ -26,7 +26,7 @@ contract BlockDecoderTest {
         return BlockDecoder.decodeValidatorData(rlpbytes.decodeToHeaderList());
     }
 
-    function DecodeExtraTest(bytes memory rlpbytes) public pure returns (uint256[] memory,bool succeed) {
+    function DecodeExtraTest(bytes memory rlpbytes) public view returns (uint256[] memory,bool succeed) {
         return BlockDecoder.decodeExtra(rlpbytes);
     }
 
@@ -41,7 +41,7 @@ contract BlockDecoderTest {
         return res;
     }
 
-    function CutExtraPrefixTest(bytes memory extra) public pure returns (bytes memory,bool) {
+    function CutExtraPrefixTest(bytes memory extra) public view returns (bytes memory,bool) {
         return BlockDecoder.cutExtraPrefix(extra);
     }
 
