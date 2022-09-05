@@ -245,6 +245,7 @@ async function checkSubmitEpochs(instance, epoch_num, validatorWallets) {
 
     let epochHeader2 = new Header(vals2, powers2);
     epochHeader2.setBlockHeight(epochHeight2.toHexString());
+    epochHeader2.genExtraWithPrefix(powers,epochHeader2.Number);
     let rlpHeader2 = genHeadRlp(epochHeader2);
     let hash2 = genHeadhash(epochHeader2);
 
