@@ -179,14 +179,13 @@ contract LightClient is ILightClient, Ownable {
         uint256 epochReward = w3qErc20.perEpochReward();
 
         uint256 totalProduceAmount = _totalProduceBlock(produceAmountList);
-        // Calculate the amount of tokens to reward validator and delegators
+        // Calculate the amount of tokens to reward validator
         for (uint256 i = 0; i < rewardVals.length; i++) {
             address valAddr = rewardVals[i];
 
             uint256 totalRewardAmount = _validatorRewardShare(epochReward, produceAmountList[i], totalProduceAmount);
-            uint256 valRewardAmount = totalRewardAmount;
 
-            staking.rewardValidator(valAddr, valRewardAmount);
+            staking.rewardValidator(valAddr, totalRewardAmount);
         }
 
         // reward validator
