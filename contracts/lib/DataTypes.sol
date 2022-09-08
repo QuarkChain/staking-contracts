@@ -51,12 +51,12 @@ library DataTypes {
         uint256 shares; // sum of all delegation shares
         uint256 undelegationTokens; // tokens being undelegated
         uint256 undelegationShares; // shares of tokens being undelegated
+        address[] delAddrs;
         mapping(address => Delegator) delegators;
         uint256 minSelfDelegation;
         uint64 bondBlock; // cannot become bonded before this block
         uint64 unbondBlock; // cannot become unbonded before this block
         uint64 commissionRate; // equal to real commission rate * COMMISSION_RATE_BASE
-        address[] delAddrs;
     }
 
     // used for external view output

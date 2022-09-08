@@ -1,55 +1,80 @@
 const { expect } = require("chai");
-const { ethers } = require("hardhat");
-// const {ethers} = require("ethers")
-const epochPeriod = 10000;
+const { sign } = require("crypto");
+const { BigNumber } = require("ethers");
+const { ethers, web3 } = require("hardhat");
+const {Config} = require("./config/config")
+
 let main = async function () {
+  
+  let globalConfig = new Config()
+  let deployParams = globalConfig.getStakingParams()
+
+  let w3qUint = BigNumber.from("1000000000000000000")
+  let ETH = BigNumber.from("300000000000000000")
+  let mintAmount = w3qUint.mul(1000)
+
+  let signers = await ethers.getSigners();
+  let owner = signers[0]
+  let vals = signers.slice(1,signers.length)
+  console.log("get from config:",owner.address,vals.length)
+
+  /*
+      deploy w3q ERC20 contract
+  */
+  let w3qcfg = globalConfig.getW3Q()
+  let erc20Factory = await ethers.getContractFactory("W3qERC20Test");
+  let w3q = await erc20Factory.deploy(w3qcfg.params.name,w3qcfg.params.symbol);
+  await w3q.deployed()
+  w3qcfg.address = w3q.address
+  globalConfig.setW3Q(w3qcfg)
+
+  /**
+   * deploy staking contract
+   */
   let factory = await ethers.getContractFactory("TestStaking");
-  let staking = await factory.deploy(
-    "0x8072113C11cE4F583Ac1104934386a171f5f7c3A",
-    10000, //_proposalDeposit
-    10000, //_votingPeriod
-    10000, //_unbondingPeriod
-    4, //_maxBondedValidators
-    100, //_minValidatorTokens
-    10000, //_minSelfDelegation
-    10000, //_advanceNoticePeriod
-    10000, //_validatorBondInterval
-    10000 //_maxSlashFactor
+  let staking = await factory.connect(owner).deploy(
+    w3q.address,
+    deployParams.proposalDeposit, 
+    deployParams.votingPeriod, 
+    deployParams.unbondingPerod,
+    deployParams.maxBondedValidators,
+    deployParams.minValidatorTokens,
+    deployParams.minSelfDelegation,
+    deployParams.advanceNoticePeriod,
+    deployParams.validatorBondInterval,
+    deployParams.maxSlashFactor
   );
   await staking.deployed();
+  
 
-  let validators = [
-    "0x2cff0b8e36522eba76f6f5c328d58581243882e4",
-    "0x959994471dee37411f579dd2820a8743cba20f46",
-    "0x977cfc676bb06daed7ddfa7711bcfe8d50c93081",
-    "0xcd21538af6e33ff6fcf1e2ca20f771413004cfd3",
-  ];
-  let powers = [1, 1, 1, 1];
+  for (let i = 0;i<4;i++){
+    console.log("_______________[",i,"] validators Bonding__________________")
+  
+    // transfer eth
+    await owner.sendTransaction({to:vals[i].address,value:ETH})
+    await w3q.connect(owner).mint(vals[i].address,mintAmount)
+    await w3q.connect(vals[i]).approve(staking.address,mintAmount)
 
-  let tx1 = await staking.initProposalVals(validators, powers);
-  let receipt1 = await tx1.wait();
+    console.log("initializeValidator()....")
+    // let gasEst = staking.estimateGas.initializeValidator(vals[i].address,_minSelfDelegation,0)
+    await staking.connect(vals[i]).initializeValidator(vals[i].address,deployParams.minSelfDelegation,0,{gasLimit:600000});
+    await staking.connect(vals[i]).delegate(vals[i].address,w3qUint.mul(10),{gasLimit:300000});
+    console.log("bondValidator()....")
+    await staking.connect(vals[i]).bondValidator({gasLimit:300000});
+  } 
 
-  let [_vals, _powers] = await staking.proposedValidators();
-  console.log(_vals, _powers);
+  let [validators,powers] = await staking.proposedValidators();
+  console.log("_____________😄 get proposedValidators() from Staking___________________")
+  for (let i =0 ;i < validators.length;i++){
+    console.log("Addr:",validators[i],"   Powers:",powers[i].toNumber())
+  }
 
-  console.log("deploy light client");
-  let factory2 = await ethers.getContractFactory("LightClient");
-  let lc = await factory2.deploy(epochPeriod, staking.address);
-  await lc.deployed();
-  console.log("LC:", lc.address);
-
-  console.log("Init epoch");
-  let tx = await lc.initEpoch(
-    validators,
-    powers,
-    0,
-    "0x0000000000000000000000000000000000000000000000000000000000000000"
-  );
-  await tx.wait();
-  let [currentEpochIdx, currentVals, currentPowers] = await lc.getCurrentEpoch();
-  console.log(currentEpochIdx, currentVals, currentPowers);
-  let nextHeight = await lc.getNextEpochHeight();
-  console.log("next epoch hetight:", nextHeight);
+  console.log("_________________________________Contract Info____________________________________")
+  console.log("w3q:",w3q.address)
+  console.log("staking:",staking.address)
+  globalConfig.setStakingAddress(staking.address)
+  globalConfig.setStakingOwner(owner.address)
+  globalConfig.save()
 };
 
 main().catch((error) => {

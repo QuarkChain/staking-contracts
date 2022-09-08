@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
 /*
  * @title MerklePatriciaVerifier
  * @author Sam Mayo (sammayo888@gmail.com)
@@ -47,7 +49,7 @@ library MerklePatriciaProof {
                 return false;
             }
             currentNodeList = RLPReader.toList(parentNodes[i]);
-            
+
             if (currentNodeList.length == 17) {
                 if (pathPtr == path.length) {
                     if (keccak256(RLPReader.toBytes(currentNodeList[16])) == keccak256(value)) {

@@ -3,10 +3,12 @@
 pragma solidity ^0.8.0;
 
 import "./lib/BlockDecoder.sol";
+import "./interfaces/IW3qERC20.sol";
 import "./lib/MerklePatriciaProof.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IStaking.sol";
 import "./interfaces/ILightClient.sol";
+import {DataTypes as dt} from "./lib/DataTypes.sol";
 
 contract LightClient is ILightClient, Ownable {
     using BlockDecoder for bytes;
@@ -22,15 +24,21 @@ contract LightClient is ILightClient, Ownable {
 
     // A contract address used to pledge w3q token to obtain voting rights.
     IStaking public staking;
+    IW3qERC20 public w3qErc20;
 
     // Record the block with the highest block height among the blocks submitted via submitHead()
     uint256 public override latestBlockHeight;
     mapping(uint256 => bytes32) public override headHashes;
     mapping(uint256 => BlockDecoder.HeadCore) public headCores;
 
-    constructor(uint256 _epochPeriod, address _staking) {
+    constructor(
+        uint256 _epochPeriod,
+        address _staking,
+        address _w3qErc20
+    ) {
         epochPeriod = _epochPeriod;
         staking = IStaking(_staking);
+        w3qErc20 = IW3qERC20(_w3qErc20);
     }
 
     /**
@@ -109,7 +117,7 @@ contract LightClient is ILightClient, Ownable {
 
         // Update Validators if the height of the submitted block header is equal to the height of the next EpochHeight
         if (decodedHeight == getNextEpochHeight()) {
-            _updateEpochValidator(headBytes);
+            _updateEpochValidator(headBytes, _position);
         }
 
         return (decodedHeight, headHash, core);
@@ -118,15 +126,18 @@ contract LightClient is ILightClient, Ownable {
     /**
      * Decode validator from headrlpbytes and create validator set for an epoch
      */
-    function _updateEpochValidator(bytes memory _epochHeaderBytes) internal {
+    function _updateEpochValidator(bytes memory _epochHeaderBytes, uint256 epochPosition) internal {
         address[] memory vals = _epochHeaderBytes.decodeNextValidators();
         uint256[] memory powers = _epochHeaderBytes.decodeNextValidatorPowers();
+        (uint256[] memory produceAmountList, ) = _epochHeaderBytes.decodeExtra();
         require(
-            vals.length > 0 && vals.length == powers.length,
-            "both NextValidators and NextValidatorPowers should not be empty"
+            vals.length > 0 &&
+                vals.length == powers.length &&
+                epochs[epochPosition].curEpochVals.length == produceAmountList.length,
+            "incorrect length"
         );
-
         _setEpochValidators(curEpochIdx + 1, vals, powers);
+        _perEpochReward(epochs[epochPosition].curEpochVals, produceAmountList);
     }
 
     /**
@@ -144,11 +155,41 @@ contract LightClient is ILightClient, Ownable {
         require(_epochSigners.length == _epochVotingPowers.length, "incorrect length");
 
         uint256 position = _epochPosition(_epochIdx);
+
         curEpochIdx = _epochIdx;
         epochs[position].curEpochVals = _epochSigners;
         epochs[position].curVotingPowers = _epochVotingPowers;
+    }
 
-        // TODO: add rewards to validators
+    function _totalProduceBlock(uint256[] memory produceBlocks) internal pure returns (uint256 total) {
+        for (uint256 i = 0; i < produceBlocks.length; i++) {
+            total += produceBlocks[i];
+        }
+    }
+
+    function _validatorRewardShare(
+        uint256 epochReward,
+        uint256 produceAmount,
+        uint256 totalProduceAmount
+    ) internal pure returns (uint256) {
+        return (epochReward * produceAmount) / totalProduceAmount;
+    }
+
+    function _perEpochReward(address[] memory rewardVals, uint256[] memory produceAmountList) internal {
+        uint256 epochReward = w3qErc20.perEpochReward();
+
+        uint256 totalProduceAmount = _totalProduceBlock(produceAmountList);
+        // Calculate the amount of tokens to reward validator
+        for (uint256 i = 0; i < rewardVals.length; i++) {
+            address valAddr = rewardVals[i];
+
+            uint256 totalRewardAmount = _validatorRewardShare(epochReward, produceAmountList[i], totalProduceAmount);
+
+            staking.rewardValidator(valAddr, totalRewardAmount);
+        }
+
+        // reward validator
+        w3qErc20.mint(address(staking), epochReward);
     }
 
     function getCurrentEpoch()

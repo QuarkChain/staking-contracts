@@ -3,10 +3,12 @@
 pragma solidity ^0.8.0;
 
 import "../lib/BlockDecoder.sol";
+import "../lib/RLPReader.sol";
 
 contract BlockDecoderTest {
     using BlockDecoder for bytes;
     using RLPReader for bytes;
+    using RLPReader for RLPReader.RLPItem;
 
     function DecodeHeaderTest(bytes memory rlpbytes) public pure returns (BlockDecoder.Header memory) {
         return BlockDecoder.decodeHeader(rlpbytes);
@@ -22,6 +24,25 @@ contract BlockDecoderTest {
 
     function DecodeValidatorDataTest(bytes memory rlpbytes) public pure returns (BlockDecoder.ValidatorData memory) {
         return BlockDecoder.decodeValidatorData(rlpbytes.decodeToHeaderList());
+    }
+
+    function DecodeExtraTest(bytes memory rlpbytes) public view returns (uint256[] memory, bool succeed) {
+        return BlockDecoder.decodeExtra(rlpbytes);
+    }
+
+    function DecodeRLPExtraTest(bytes memory rlpbytes) public pure returns (bytes memory) {
+        return decodeRLPExtra(rlpbytes);
+    }
+
+    function decodeRLPExtra(bytes memory headerRLPBytes) internal pure returns (bytes memory) {
+        RLPReader.RLPItem[] memory list = BlockDecoder.decodeToHeaderList(headerRLPBytes);
+        RLPReader.RLPItem memory item = list[uint8(BlockDecoder.HeaderProperty.Extra)];
+        bytes memory res = item.toRlpBytes();
+        return res;
+    }
+
+    function CutExtraPrefixTest(bytes memory extra) public view returns (bytes memory, bool) {
+        return BlockDecoder.cutExtraPrefix(extra);
     }
 
     function DecodeNextValidatorsTest(bytes memory rlpbytes) public pure returns (address[] memory) {

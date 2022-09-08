@@ -34,6 +34,8 @@ contract Staking is Pauser, Whitelist {
     uint256 public forfeiture;
     uint256 public epoch; // number of blocks per epoch
 
+    address public lightClient;
+
     /* Events */
     event ValidatorNotice(address indexed valAddr, string key, bytes data, address from);
     event ValidatorStatusUpdate(address indexed valAddr, dt.ValidatorStatus indexed status);
@@ -47,6 +49,7 @@ contract Staking is Pauser, Whitelist {
     event Undelegated(address indexed valAddr, address indexed delAddr, uint256 amount);
     event Slash(address indexed valAddr, uint64 nonce, uint256 slashAmt);
     event SlashAmtCollected(address indexed recipient, uint256 amount);
+    event RewardValidator(address indexed valAddr, uint256 valTokens);
 
     /**
      * @notice Staking constructor
@@ -91,6 +94,14 @@ contract Staking is Pauser, Whitelist {
     /*********************************
      * External and Public Functions *
      *********************************/
+
+    /**
+     * @notice config the lightClient address
+     * @param _lightClient lightClient contract address
+     */
+    function setLightClient(address _lightClient) public onlyOwner {
+        lightClient = _lightClient;
+    }
 
     /**
      * @notice Initialize a validator candidate
@@ -199,6 +210,23 @@ contract Staking is Pauser, Whitelist {
         validator.status = dt.ValidatorStatus.Unbonded;
         delete validator.unbondBlock;
         emit ValidatorStatusUpdate(_valAddr, dt.ValidatorStatus.Unbonded);
+    }
+
+    function rewardValidator(address _valAddr, uint256 _tokens) public {
+        require(msg.sender == lightClient, "Only lightClient can call");
+
+        dt.Validator storage validator = validators[_valAddr];
+
+        // consider that any require() failure causes the lightclient.submitHead() to fail to process new epoch headers.
+        if (validator.status == dt.ValidatorStatus.Null) {
+            return;
+        }
+        validator.tokens += _tokens;
+        if (validator.status == dt.ValidatorStatus.Bonded) {
+            bondedTokens += _tokens;
+            _decentralizationCheck(validator.tokens);
+        }
+        emit RewardValidator(_valAddr, _tokens);
     }
 
     /**
