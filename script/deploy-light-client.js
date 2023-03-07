@@ -18,7 +18,7 @@ async function main() {
 
   console.log("deploy light client ...");
   let factory2 = await ethers.getContractFactory("LightClient");
-  let lc = await factory2.connect(owner).deploy(BigNumber.from(deployParams.epochPeriod), staking_addr,globalConfig.getW3QAddress());
+  let lc = await factory2.connect(owner).deploy(BigNumber.from(deployParams.epochPeriod), staking_addr,globalConfig.getW3QAddress(),deployParams.chainId);
   await lc.deployed();
   
   console.log("Initalize Epoch ...");

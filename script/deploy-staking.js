@@ -22,7 +22,7 @@ let main = async function () {
       deploy w3q ERC20 contract
   */
   let w3qcfg = globalConfig.getW3Q()
-  let erc20Factory = await ethers.getContractFactory("W3qERC20Test");
+  let erc20Factory = await ethers.getContractFactory("W3qERC20");
   let w3q = await erc20Factory.deploy(w3qcfg.params.name,w3qcfg.params.symbol);
   await w3q.deployed()
   w3qcfg.address = w3q.address
