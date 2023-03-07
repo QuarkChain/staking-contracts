@@ -121,7 +121,8 @@ library BlockDecoder {
         bytes memory commitRlpBytes,
         address[] memory validators,
         uint256[] memory votePowers,
-        bool lookUpByIndex
+        bool lookUpByIndex,
+        uint256 chainId
     )
         internal
         pure
@@ -131,7 +132,6 @@ library BlockDecoder {
             HeadCore memory
         )
     {
-        // ToDo:verify header base data
         bytes32 hash = msgHash(headerRlpBytes);
         (uint256 height, HeadCore memory core) = decodeHeadCore(headerRlpBytes);
 
@@ -139,9 +139,10 @@ library BlockDecoder {
         require(commit.BlockID == hash, "incorrect BlockID");
         require(commit.Height == height, "incorrect Height");
 
+        uint256 votingPowerNeeded = votingPowerNeed(votePowers);
         // verify all signatures
         require(
-            verifyAllSignature(commit, validators, votePowers, lookUpByIndex, false, votingPowerNeed(votePowers), 3334),
+            verifyAllSignature(commit, validators, votePowers, lookUpByIndex, false, votingPowerNeeded, chainId),
             "failed to verify all signatures"
         );
 

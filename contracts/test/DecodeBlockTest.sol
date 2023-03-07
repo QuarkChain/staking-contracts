@@ -90,7 +90,8 @@ contract BlockDecoderTest {
         bytes memory headerRlpBytes,
         bytes memory commitRlpBytes,
         address[] memory validators,
-        uint256[] memory votePowers
+        uint256[] memory votePowers,
+        uint256 _chainId
     )
         public
         pure
@@ -100,7 +101,7 @@ contract BlockDecoderTest {
             BlockDecoder.HeadCore memory
         )
     {
-        return BlockDecoder.verifyHeader(headerRlpBytes, commitRlpBytes, validators, votePowers, false);
+        return BlockDecoder.verifyHeader(headerRlpBytes, commitRlpBytes, validators, votePowers, false, _chainId);
     }
 
     function voteSignBytesTest(
