@@ -1,16 +1,11 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { BigNumber } = require("ethers");
-
-function check(f, got, want) {
-  expect(got).to.eq(want);
-}
-
-function checkArray(f, got, want) {
-  got.forEach((v, i) => {
-    expect(v).to.eq(want[i]);
-  });
-}
+const {
+  check,
+  checkArray,
+  CHAINID_UINT,
+} = require("./lib/head");
 
 function addHexPrefix(str) {
   return "0x" + str;
@@ -309,7 +304,7 @@ describe("verify header test", function () {
     check("header height", commit.Height, res.baseData.Number);
 
     try {
-      let [height, hash] = await db.verifyHeaderTest(headerRlp, commitRlp, validators, powers);
+      let [height, hash] = await db.verifyHeaderTest(headerRlp, commitRlp, validators, powers, CHAINID_UINT);
       check("Verify Header", height, commit.Height);
     } catch (error) {
       throw error;
