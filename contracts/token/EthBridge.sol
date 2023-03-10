@@ -4,23 +4,23 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "../lib/ReceiptDecoder.sol";
 import "../LightClient.sol";
 
-contract W3qERC20 is ERC20Pausable, Ownable {
+contract EthBridge is ERC20Pausable, Ownable {
+
+    using ReceiptDecoder for bytes;
     LightClient public prover;
 
     mapping(uint256 => bool) public burnNonceUsed;
     uint256 public constant PER_EPOCH_REWARD = 1e20;
 
-<<<<<<< HEAD
     address public constant tokenOnWeb3q = 0x0000000000000000000000000000000003330002;
     mapping (uint256 => bool) nonceUsed;
-=======
-    address public tokenOnWeb3q;
->>>>>>> main
 
-    event burnToken(address indexed owner, uint256 amount);
-    event mintToken(uint256 indexed nonce, uint256 indexed logIdx, address indexed to, uint256 amount);
+
+    event sendToken(address indexed owner, uint256 amount);
+    event reveiveToken(uint256 indexed nonce, uint256 indexed logIdx, address indexed to, uint256 amount);
 
     constructor(string memory name, string memory symbol)ERC20(name, symbol) {
     }
@@ -33,13 +33,10 @@ contract W3qERC20 is ERC20Pausable, Ownable {
         return PER_EPOCH_REWARD;
     }
 
-<<<<<<< HEAD
-    function burnFroBridgeToken(address account , uint256 amount) public{
-       
+    function sendToWeb3q(address account , uint256 amount) public{
         // _spendAllowance(account, msg.sender, amount);
         _burn(account, amount);
-
-        emit burnToken(account, amount);
+        emit sendToken(account, amount);
     }
 
     function setProver(LightClient addr)public {
@@ -47,7 +44,7 @@ contract W3qERC20 is ERC20Pausable, Ownable {
     }
 
 
-    function mintForBridgeToken(uint256 height, ILightClient.Proof memory proof,uint256 logIdx) public {
+    function receiveFromWeb3q(uint256 height, ILightClient.Proof memory proof,uint256 logIdx) public {
         require(prover.proveReceipt(height,proof),"invalid receipt");
         ReceiptDecoder.Receipt memory receipt = proof.value.decodeReceipt();
         // verify contract addr on origin chain 
@@ -61,16 +58,16 @@ contract W3qERC20 is ERC20Pausable, Ownable {
         uint256 amount = abi.decode(receipt.logs[logIdx].data,(uint256));
         _mint(to,amount);
 
-        emit mintToken(nonce,logIdx,to,amount);
+        emit reveiveToken(nonce,logIdx,to,amount);
     }
 
-    function batchMintForBridgeToken(uint256 height, ILightClient.Proof[] memory proofs,uint256[] memory logIdxs) public {
+    function batchReceive(uint256 height, ILightClient.Proof[] memory proofs,uint256[] memory logIdxs) public {
         for (uint256 i = 0; i < proofs.length ; i ++) {
-           mintForBridgeToken(height,proofs[i],logIdxs[i]);
+           receiveFromWeb3q(height,proofs[i],logIdxs[i]);
         }
     }
 
-    function batchMintWhenSubmitHeader(
+    function submitHeaderAndBatchReceive(
         uint256 height,
         bytes memory headBytes,
         bytes memory commitBytes,
@@ -79,10 +76,7 @@ contract W3qERC20 is ERC20Pausable, Ownable {
         uint256[] memory logIdxs
     ) public {
         prover.submitHeader(height, headBytes, commitBytes, lookByIndex);
-        batchMintForBridgeToken(height,proofs,logIdxs);
+        batchReceive(height,proofs,logIdxs);
     }
 
 }
-=======
-}
->>>>>>> main

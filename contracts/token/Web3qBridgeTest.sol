@@ -1,15 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.8.0;
 
-import "./W3qNative.sol";
+import "./Web3qBridge.sol";
 
-contract W3qNativeTest is W3qNative {
+contract Web3qBridgeTest is TokenManager {
     event mintNT(address to, uint256 amount);
 
     function mintNativeTest(address to, uint256 amount) public {
-        bytes memory payload = abi.encodeWithSignature("mintNative(address,uint256)", to, amount);
-        (bool succeed, ) = address(systemOptIn).call(payload);
-        require(succeed, "mint native token error");
+        _mint(to, amount);
+        emit mintNT(to, amount);
+    }
+
+    function burnNativeTest(address to, uint256 amount) public {
+        _mint(to, amount);
         emit mintNT(to, amount);
     }
 
