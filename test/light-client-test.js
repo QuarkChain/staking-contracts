@@ -16,6 +16,7 @@ const {
   signVotes,
   Vote,
   CHAIN_ID,
+  CHAINID_UINT,
   submitNormalHead,
   selectWallet,
   checkSubmitEpochs,
@@ -67,10 +68,9 @@ describe("light client test", function () {
       1000
     );
     await staking.deployed();
-
     epochPeriod = 10000;
     let factory2 = await ethers.getContractFactory("LightClient");
-    test = await factory2.deploy(_epoch_period, staking.address, w3q.address);
+    test = await factory2.deploy(_epoch_period, staking.address, w3q.address,CHAINID_UINT);
 
     await test.deployed();
     await staking.setLightClient(test.address);
@@ -97,7 +97,7 @@ describe("light client test", function () {
     await staking_test.deployed();
 
     factory = await ethers.getContractFactory("LightClientTest");
-    let light_client_test = await factory.connect(owner).deploy(_epoch_period, staking_test.address, w3q.address);
+    let light_client_test = await factory.connect(owner).deploy(_epoch_period, staking_test.address, w3q.address,CHAINID_UINT);
     await light_client_test.deployed();
     await staking_test.setLightClient(light_client_test.address);
 

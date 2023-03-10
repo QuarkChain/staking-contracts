@@ -31,14 +31,18 @@ contract LightClient is ILightClient, Ownable {
     mapping(uint256 => bytes32) public override headHashes;
     mapping(uint256 => BlockDecoder.HeadCore) public headCores;
 
+    uint256 public immutable chaindId;
+
     constructor(
         uint256 _epochPeriod,
         address _staking,
-        address _w3qErc20
+        address _w3qErc20,
+        uint256 _chaindId
     ) {
         epochPeriod = _epochPeriod;
         staking = IStaking(_staking);
         w3qErc20 = IW3qERC20(_w3qErc20);
+        chaindId = _chaindId;
     }
 
     /**
@@ -112,7 +116,8 @@ contract LightClient is ILightClient, Ownable {
             commitBytes,
             epochs[_position].curEpochVals,
             epochs[_position].curVotingPowers,
-            lookByIndex
+            lookByIndex,
+            chaindId
         );
 
         // Update Validators if the height of the submitted block header is equal to the height of the next EpochHeight

@@ -176,6 +176,7 @@ class Vote {
 }
 
 // chainID = "evm_3334"
+const CHAINID_UINT=3334
 const CHAIN_ID = "0x65766d5f33333334";
 function voteSignBytes(commit, chainId, Idx) {
   newVote = new Vote(commit, chainId, Idx);
@@ -294,6 +295,7 @@ exports.Commit = Commit;
 exports.signVotes = signVotes;
 exports.Vote = Vote;
 exports.CHAIN_ID = CHAIN_ID;
+exports.CHAINID_UINT = CHAINID_UINT;
 exports.submitNormalHead = submitNormalHead;
 exports.selectWallet = selectWallet;
 exports.checkSubmitEpochs = checkSubmitEpochs;
