@@ -121,7 +121,8 @@ library BlockDecoder {
         bytes memory commitRlpBytes,
         address[] memory validators,
         uint256[] memory votePowers,
-        bool lookUpByIndex
+        bool lookUpByIndex,
+        uint256 chainId
     )
         internal
         pure
@@ -131,7 +132,6 @@ library BlockDecoder {
             HeadCore memory
         )
     {
-        // ToDo:verify header base data
         bytes32 hash = msgHash(headerRlpBytes);
         (uint256 height, HeadCore memory core) = decodeHeadCore(headerRlpBytes);
 
@@ -139,9 +139,10 @@ library BlockDecoder {
         require(commit.BlockID == hash, "incorrect BlockID");
         require(commit.Height == height, "incorrect Height");
 
+        uint256 votingPowerNeeded = votingPowerNeed(votePowers);
         // verify all signatures
         require(
-            verifyAllSignature(commit, validators, votePowers, lookUpByIndex, false, votingPowerNeed(votePowers), 3333),
+            verifyAllSignature(commit, validators, votePowers, lookUpByIndex, false, votingPowerNeeded, chainId),
             "failed to verify all signatures"
         );
 
@@ -389,15 +390,16 @@ library BlockDecoder {
     // the Extra Data with two format:
     // first: rlp(produce list)
     // second: "HeaderNumber",HeaderNumber[8byte],HeaderHash[32byte],rlp(produce list)
-    function decodeExtra(bytes memory headerRLPBytes) internal pure returns (uint256[] memory) {
+    function decodeExtra(bytes memory headerRLPBytes) internal view returns (uint256[] memory, bool) {
         RLPReader.RLPItem[] memory list = decodeToHeaderList(headerRLPBytes);
         RLPReader.RLPItem memory item = list[uint8(HeaderProperty.Extra)];
         bytes memory extraData = item.toBytes();
-        (bytes memory res, ) = cutExtraPrefix(extraData);
-        return res.toRlpItem().toUintArray();
+        (bytes memory res, bool succeed) = cutExtraPrefix(extraData);
+
+        return (res.toRlpItem().toUintArray(), succeed);
     }
 
-    function cutExtraPrefix(bytes memory extraData) internal pure returns (bytes memory, bool) {
+    function cutExtraPrefix(bytes memory extraData) internal view returns (bytes memory, bool) {
         bytes memory prefix = EXTRA_PREFIX;
         if (Memory.equals(Memory.dataPtr(prefix), Memory.dataPtr(extraData), EXTRA_PREFIX.length)) {
             uint256 prefixLen = EXTRA_PREFIX.length + HEADER_NUMBER_HASH_LEN;
@@ -408,13 +410,6 @@ library BlockDecoder {
             return (dataWithNoPrefix, true);
         }
         return (extraData, false);
-    }
-
-    function decodeRLPExtra(bytes memory headerRLPBytes) internal pure returns (bytes memory) {
-        RLPReader.RLPItem[] memory list = decodeToHeaderList(headerRLPBytes);
-        RLPReader.RLPItem memory item = list[uint8(HeaderProperty.Extra)];
-        bytes memory res = item.toRlpBytes();
-        return res;
     }
 
     function decodeNextValidators(bytes memory headerRLPBytes) internal pure returns (address[] memory) {

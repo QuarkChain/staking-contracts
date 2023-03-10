@@ -31,16 +31,16 @@ describe("delegate test", function () {
     w3q = await deploy("W3Q", []);
 
     const args = [
-      w3q.address,   //_TokenAddress,
-      10000,           //_proposalDeposit,
-      50,     //_votingPeriod,
-      10,              //_unbondingPeriod,
-      30,              //_maxBondedValidators,
-      BigNumber.from(100).mul(ethers.constants.WeiPerEther),             //_minValidatorTokens,
-      BigNumber.from(10).mul(ethers.constants.WeiPerEther),              //_minSelfDelegation,
-      1000,            //_advanceNoticePeriod,
-      5,               //_validatorBondInterval,
-      1000,    		 //_maxSlashFactor,        
+      w3q.address, //_TokenAddress,
+      10000, //_proposalDeposit,
+      50, //_votingPeriod,
+      10, //_unbondingPeriod,
+      30, //_maxBondedValidators,
+      BigNumber.from(100).mul(ethers.constants.WeiPerEther), //_minValidatorTokens,
+      BigNumber.from(10).mul(ethers.constants.WeiPerEther), //_minSelfDelegation,
+      1000, //_advanceNoticePeriod,
+      5, //_validatorBondInterval,
+      1000, //_maxSlashFactor,
     ];
 
     staking = await deploy("Staking", args);
@@ -55,7 +55,7 @@ describe("delegate test", function () {
       rt = await tx.wait();
       rt = await owner.sendTransaction({
         to: wallet.address,
-        value: ethers.utils.parseEther("1")
+        value: ethers.utils.parseEther("1"),
       });
       wallet = wallet.connect(ethers.provider);
       tx = await w3q.connect(wallet).approve(staking.address, ethers.constants.MaxUint256);
@@ -71,9 +71,8 @@ describe("delegate test", function () {
     const tokens = await staking.getValidatorTokens(vals[2].address);
     check("token", tokens, ethers.utils.parseEther("102"));
     const delegators = await staking.getDelegators(vals[2].address);
-    checkArray("delegators", delegators, [vals[2].address])
+    checkArray("delegators", delegators, [vals[2].address]);
   });
-
 
   it("delegate/undelegate", async function () {
     const validitor = vals[2].connect(ethers.provider);
@@ -83,7 +82,9 @@ describe("delegate test", function () {
     let delegators = await staking.getDelegators(validitor.address);
     checkArray("delegators", delegators, [validitor.address, delegator.address]);
     let { tokens } = await staking.getDelegatorInfo(validitor.address, validitor.address);
-    await expect(staking.connect(validitor).undelegateTokens(validitor.address, tokens, 1)).to.be.revertedWith('Index not found');
+    await expect(staking.connect(validitor).undelegateTokens(validitor.address, tokens, 1)).to.be.revertedWith(
+      "Index not found"
+    );
     tx = await staking.connect(validitor).undelegateTokens(validitor.address, tokens, 0);
     rt = await tx.wait();
     delegators = await staking.getDelegators(validitor.address);

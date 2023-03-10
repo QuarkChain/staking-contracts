@@ -38,6 +38,10 @@ class Config{
         return this.Staking.params
     }
 
+    getStakingAddress() {
+        return this.Staking.address
+    }
+
     setStakingAddress(addr) {
         this.Staking.address = addr
         this.LightClient.params.staking = addr

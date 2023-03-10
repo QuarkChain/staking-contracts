@@ -31,14 +31,18 @@ contract LightClient is ILightClient, Ownable {
     mapping(uint256 => bytes32) public override headHashes;
     mapping(uint256 => BlockDecoder.HeadCore) public headCores;
 
+    uint256 public immutable chaindId;
+
     constructor(
         uint256 _epochPeriod,
         address _staking,
-        address _w3qErc20
+        address _w3qErc20,
+        uint256 _chaindId
     ) {
         epochPeriod = _epochPeriod;
         staking = IStaking(_staking);
         w3qErc20 = IW3qERC20(_w3qErc20);
+        chaindId = _chaindId;
     }
 
     /**
@@ -112,12 +116,13 @@ contract LightClient is ILightClient, Ownable {
             commitBytes,
             epochs[_position].curEpochVals,
             epochs[_position].curVotingPowers,
-            lookByIndex
+            lookByIndex,
+            chaindId
         );
 
         // Update Validators if the height of the submitted block header is equal to the height of the next EpochHeight
         if (decodedHeight == getNextEpochHeight()) {
-            _updateEpochValidator(headBytes,_position);
+            _updateEpochValidator(headBytes, _position);
         }
 
         return (decodedHeight, headHash, core);
@@ -126,15 +131,16 @@ contract LightClient is ILightClient, Ownable {
     /**
      * Decode validator from headrlpbytes and create validator set for an epoch
      */
-    function _updateEpochValidator(bytes memory _epochHeaderBytes,uint256 epochPosition) internal {
+    function _updateEpochValidator(bytes memory _epochHeaderBytes, uint256 epochPosition) internal {
         address[] memory vals = _epochHeaderBytes.decodeNextValidators();
         uint256[] memory powers = _epochHeaderBytes.decodeNextValidatorPowers();
-        uint256[] memory produceAmountList = _epochHeaderBytes.decodeExtra();
+        (uint256[] memory produceAmountList, ) = _epochHeaderBytes.decodeExtra();
         require(
-            vals.length > 0 && vals.length == powers.length && vals.length == powers.length,
+            vals.length > 0 &&
+                vals.length == powers.length &&
+                epochs[epochPosition].curEpochVals.length == produceAmountList.length,
             "incorrect length"
         );
-
         _setEpochValidators(curEpochIdx + 1, vals, powers);
         _perEpochReward(epochs[epochPosition].curEpochVals, produceAmountList);
     }
@@ -177,39 +183,18 @@ contract LightClient is ILightClient, Ownable {
     function _perEpochReward(address[] memory rewardVals, uint256[] memory produceAmountList) internal {
         uint256 epochReward = w3qErc20.perEpochReward();
 
-        // Calculate the amount of tokens to reward validator and delegators
+        uint256 totalProduceAmount = _totalProduceBlock(produceAmountList);
+        // Calculate the amount of tokens to reward validator
         for (uint256 i = 0; i < rewardVals.length; i++) {
             address valAddr = rewardVals[i];
 
-            uint256 valShares = staking.getValidatorShare(valAddr);
-            address[] memory delAddrs = staking.getDelegatorAddrs(valAddr);
+            uint256 totalRewardAmount = _validatorRewardShare(epochReward, produceAmountList[i], totalProduceAmount);
 
-            uint256 totalRewardAmount = _validatorRewardShare(
-                epochReward,
-                produceAmountList[i],
-                _totalProduceBlock(produceAmountList)
-            );
-            uint256 valRewardAmount = totalRewardAmount;
-
-            for (uint256 j = 0; j < delAddrs.length; j++) {
-                address delAddr = delAddrs[j];
-                uint256 delShare = staking.getDelegatorShare(valAddr, delAddr);
-                uint256 delRewardAmount = (totalRewardAmount * delShare) / valShares;
-
-                // reward delegator
-                w3qErc20.mint(delAddr, delRewardAmount);
-                valRewardAmount -= delRewardAmount;
-            }
-
-            // reward validator
-            w3qErc20.mint(valAddr, valRewardAmount);
+            staking.rewardValidator(valAddr, totalRewardAmount);
         }
-    }
 
-    function totalVotePowers(uint256[] memory votePowers) internal pure returns (uint256 sum) {
-        for (uint256 i = 0; i < votePowers.length; i++) {
-            sum += votePowers[i];
-        }
+        // reward validator
+        w3qErc20.mint(address(staking), epochReward);
     }
 
     function getCurrentEpoch()

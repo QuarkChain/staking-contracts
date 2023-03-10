@@ -176,6 +176,7 @@ class Vote {
 }
 
 // chainID = "evm_3334"
+const CHAINID_UINT=3334
 const CHAIN_ID = "0x65766d5f33333334";
 function voteSignBytes(commit, chainId, Idx) {
   newVote = new Vote(commit, chainId, Idx);
@@ -245,6 +246,7 @@ async function checkSubmitEpochs(instance, epoch_num, validatorWallets) {
 
     let epochHeader2 = new Header(vals2, powers2);
     epochHeader2.setBlockHeight(epochHeight2.toHexString());
+    epochHeader2.genExtraWithPrefix(powers,epochHeader2.Number);
     let rlpHeader2 = genHeadRlp(epochHeader2);
     let hash2 = genHeadhash(epochHeader2);
 
@@ -268,6 +270,19 @@ async function checkSubmitEpochs(instance, epoch_num, validatorWallets) {
   }
 }
 
+async function initStakingValidator(w3q,staking,w3qOwner,signers){
+  const w3qUint = BigNumber.from("1000000000000000000");
+  let mintAmount = w3qUint.mul(100);
+
+  for (let i = 0; i < signers.length; i++) {
+    let _wallet = signers[i];
+    await w3q.mint(_wallet.address, mintAmount);
+    await w3q.connect(_wallet).approve(staking.address, mintAmount);
+    await staking.connect(_wallet).initializeValidator(_wallet.address, _minSelfDelegation, 0);
+  }
+}
+
+
 exports.check = check;
 exports.checkArray = checkArray;
 exports.generateSignature = generateSignature;
@@ -280,6 +295,8 @@ exports.Commit = Commit;
 exports.signVotes = signVotes;
 exports.Vote = Vote;
 exports.CHAIN_ID = CHAIN_ID;
+exports.CHAINID_UINT = CHAINID_UINT;
 exports.submitNormalHead = submitNormalHead;
 exports.selectWallet = selectWallet;
 exports.checkSubmitEpochs = checkSubmitEpochs;
+exports.initStakingValidator = initStakingValidator;
