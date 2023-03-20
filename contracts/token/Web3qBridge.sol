@@ -44,7 +44,7 @@ contract Web3qBridge is TokenManager, CrossChainCall {
         return (c, topics, data);
     }
 
-    function receiveFromEth(txHash, logIdx, to, amount);(bytes32 txHash, uint256 logIdx) public {
+    function receiveFromEth(bytes32 txHash, uint256 logIdx) public {
         require(!burnlogConsumed[txHash][logIdx], "the burn log has been used");
         burnlogConsumed[txHash][logIdx] = true;
         (address _w3qOnEthereum, bytes32[] memory topics, bytes memory data) = getEthereumLog(4, txHash, logIdx, 32, blockConfirms);
