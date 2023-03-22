@@ -18,9 +18,8 @@ contract EthBridge is ERC20Pausable, Ownable {
     address public constant tokenOnWeb3q = 0x0000000000000000000000000000000003330002;
     mapping (uint256 => bool) nonceUsed;
 
-
-    event sendToken(address indexed owner, uint256 amount);
-    event reveiveToken(uint256 indexed nonce, uint256 indexed logIdx, address indexed to, uint256 amount);
+    event SendToken(address indexed owner, uint256 amount);
+    event ReveiveToken(uint256 indexed nonce, uint256 indexed logIdx, address indexed to, uint256 amount);
 
     constructor(string memory name, string memory symbol)ERC20(name, symbol) {
     }
@@ -36,7 +35,7 @@ contract EthBridge is ERC20Pausable, Ownable {
     function sendToWeb3q(address account , uint256 amount) public{
         // _spendAllowance(account, msg.sender, amount);
         _burn(account, amount);
-        emit sendToken(account, amount);
+        emit SendToken(account, amount);
     }
 
     function setProver(LightClient addr)public {
@@ -58,7 +57,7 @@ contract EthBridge is ERC20Pausable, Ownable {
         uint256 amount = abi.decode(receipt.logs[logIdx].data,(uint256));
         _mint(to,amount);
 
-        emit reveiveToken(nonce,logIdx,to,amount);
+        emit ReveiveToken(nonce,logIdx,to,amount);
     }
 
     function batchReceive(uint256 height, ILightClient.Proof[] memory proofs,uint256[] memory logIdxs) public {
