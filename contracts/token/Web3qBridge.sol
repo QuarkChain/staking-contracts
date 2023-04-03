@@ -5,7 +5,8 @@ import "./sidechain/TokenManager.sol";
 import "./sidechain/CrossChainCall.sol";
 
 contract Web3qBridge is TokenManager, CrossChainCall {
-    uint256 public constant blockConfirms = 10;
+    uint256 public constant BLOCK_CONFIRMS = 1;
+    uint256 public constant SOURCE_CHAINID = 5; 
     
     // address public constant owner = ;
     address public w3qOnEthereum;
@@ -47,7 +48,7 @@ contract Web3qBridge is TokenManager, CrossChainCall {
     function receiveFromEth(bytes32 txHash, uint256 logIdx) public {
         require(!burnlogConsumed[txHash][logIdx], "the burn log has been used");
         burnlogConsumed[txHash][logIdx] = true;
-        (address _w3qOnEthereum, bytes32[] memory topics, bytes memory data) = getEthereumLog(4, txHash, logIdx, 32, blockConfirms);
+        (address _w3qOnEthereum, bytes32[] memory topics, bytes memory data) = getEthereumLog(SOURCE_CHAINID, txHash, logIdx, 32, BLOCK_CONFIRMS);
         require(_w3qOnEthereum == w3qOnEthereum, "contract addr no match");
 
         address to = address(uint160(uint256(topics[1])));
