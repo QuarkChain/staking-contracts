@@ -7,7 +7,7 @@ class Config{
 
     constructor(){
         try {
-            let path = "./deploy_config.yaml"
+            let path = "./deploy_config-mr.yaml"
             let context = fs.readFileSync(path,'utf-8');
             let config = YAML.parse(context);
             console.log(config)
