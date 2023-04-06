@@ -10,7 +10,7 @@ let main = async function () {
   let deployParams = globalConfig.getStakingParams()
 
   let w3qUint = BigNumber.from("1000000000000000000")
-  let ETH = BigNumber.from("300000000000000000")
+  let ETH = BigNumber.from("700000000000000000")
   let mintAmount = w3qUint.mul(1000)
 
   let signers = await ethers.getSigners();
@@ -24,7 +24,8 @@ let main = async function () {
   let w3qcfg = globalConfig.getW3Q()
   let erc20Factory = await ethers.getContractFactory("W3qERC20");
   let w3q = await erc20Factory.deploy(w3qcfg.params.name,w3qcfg.params.symbol);
-  await w3q.deployed()
+  await w3q.deployed();
+  await w3q.setPerEpochReward(w3qUint);
   w3qcfg.address = w3q.address
   globalConfig.setW3Q(w3qcfg)
 
@@ -56,6 +57,7 @@ let main = async function () {
     await w3q.connect(vals[i]).approve(staking.address,mintAmount)
 
     console.log("initializeValidator()....")
+    
     // let gasEst = staking.estimateGas.initializeValidator(vals[i].address,_minSelfDelegation,0)
     await staking.connect(vals[i]).initializeValidator(vals[i].address,deployParams.minSelfDelegation,0,{gasLimit:600000});
     await staking.connect(vals[i]).delegate(vals[i].address,w3qUint.mul(10),{gasLimit:300000});
