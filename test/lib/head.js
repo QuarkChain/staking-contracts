@@ -206,6 +206,34 @@ function selectWallet(walletSet, head, period) {
   return walletSet[index];
 }
 
+function convertPowersnumToPowershex(numPowers){
+  let powers = [];
+  for (let i = 0; i < numPowers.length; i++) {
+    powers.push(BigNumber.from(numPowers[i]).toHexString());
+  }
+  return powers;
+}
+
+async function createSignSubmitHeader(lightclient , expHeight,currentEpochValWallets,nextEpochVals,nextEpochPowers) {
+  let nextPowersHex = convertPowersnumToPowershex(nextEpochPowers);
+
+    let heightBN = BigNumber.from(expHeight);
+    let expHeader = new Header(nextEpochVals, nextPowersHex);
+    expHeader.setBlockHeight(heightBN.toHexString());
+    expHeader.genExtraWithPrefix(nextPowersHex,expHeader.Number);
+    console.log(expHeader)
+    let rlpHeader = genHeadRlp(expHeader);
+    let headerHash = genHeadhash(expHeader);
+
+    let commit = new Commit(heightBN.toHexString(),"0x02", headerHash,currentEpochValWallets)
+    await signVotes(currentEpochValWallets,commit);
+    let rlpCommit = commit.genCommitRlp();
+
+    let tx2 = await lightclient.submitHeader(heightBN.toHexString(), rlpHeader, rlpCommit, false);
+    let receipt2 = await tx2.wait();
+    console.log("EPOCHID:", epochIdx, " VALNUM:", valNum, " GasUsed:", receipt2.gasUsed.toString());
+}
+
 async function checkSubmitEpochs(instance, epoch_num, validatorWallets) {
   const wallets = [];
   const vals = [];
@@ -300,3 +328,4 @@ exports.submitNormalHead = submitNormalHead;
 exports.selectWallet = selectWallet;
 exports.checkSubmitEpochs = checkSubmitEpochs;
 exports.initStakingValidator = initStakingValidator;
+exports.createSignSubmitHeader = createSignSubmitHeader;
