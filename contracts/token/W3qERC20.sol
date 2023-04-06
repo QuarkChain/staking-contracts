@@ -20,7 +20,7 @@ contract W3qERC20 is ERC20Pausable, Ownable {
         _mint(account, amount);
     }
 
-    function setPerEpochReward(uint256 amount) public {
+    function setPerEpochReward(uint256 amount) public onlyOwner{
         PER_EPOCH_REWARD = amount;
     }
 
