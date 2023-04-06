@@ -16,6 +16,7 @@ let main = async function () {
   for (let i =0 ;i < vals.length;i++){
     console.log("Addr:",vals[i],"   Powers:",powers[i].toNumber())
   }
+
 }
 
 main().catch((error) => {

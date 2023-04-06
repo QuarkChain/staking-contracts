@@ -12,7 +12,7 @@ let main = async function () {
 
   let epochPeriod = 10000;
   let w3qUint = BigNumber.from("1000000000000000000")
-  let ETH = BigNumber.from("400000000000000000")
+  let ETH = BigNumber.from("500000000000000000")
   let mintAmount = w3qUint.mul(1000)
 
   let _unbondingPeriod = 3 * epochPeriod;
