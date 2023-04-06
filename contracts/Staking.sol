@@ -224,7 +224,6 @@ contract Staking is Pauser, Whitelist {
         validator.tokens += _tokens;
         if (validator.status == dt.ValidatorStatus.Bonded) {
             bondedTokens += _tokens;
-            _decentralizationCheck(validator.tokens);
         }
         emit RewardValidator(_valAddr, _tokens);
     }
