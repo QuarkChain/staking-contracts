@@ -4,9 +4,9 @@ pragma solidity ^0.8.0;
 
 interface ILightClient {
     struct Proof {
-        bytes rlpValue;
-        bytes rlpParentNodes;
-        bytes encodePath;
+        bytes value;
+        bytes proofPath;
+        bytes hpKey;
     }
 
     struct Epoch {

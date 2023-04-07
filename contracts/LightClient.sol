@@ -6,6 +6,7 @@ import "./lib/BlockDecoder.sol";
 import "./interfaces/IW3qERC20.sol";
 import "./lib/MerklePatriciaProof.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 import "./interfaces/IStaking.sol";
 import "./interfaces/ILightClient.sol";
 import {DataTypes as dt} from "./lib/DataTypes.sol";
@@ -190,11 +191,19 @@ contract LightClient is ILightClient, Ownable {
 
             uint256 totalRewardAmount = _validatorRewardShare(epochReward, produceAmountList[i], totalProduceAmount);
 
-            staking.rewardValidator(valAddr, totalRewardAmount);
+            Address.functionCall(
+                address(staking),
+                abi.encodeWithSelector(IStaking.rewardValidator.selector,valAddr,totalRewardAmount),
+                "failed to invoke staking.rewardValidator()"
+                );
         }
 
         // reward validator
-        w3qErc20.mint(address(staking), epochReward);
+        Address.functionCall(
+            address(w3qErc20),
+            abi.encodeWithSelector(IW3qERC20.mintByLightClient.selector,address(staking),epochReward),
+            "failed to mint w3q"
+            );
     }
 
     function getCurrentEpoch()
@@ -286,12 +295,12 @@ contract LightClient is ILightClient, Ownable {
 
     function proveTx(uint256 height, ILightClient.Proof memory proof) external view override returns (bool) {
         bytes32 txRoot = getTxRoot(height);
-        return MerklePatriciaProof.verify(proof.rlpValue, proof.rlpParentNodes, proof.encodePath, txRoot);
+        return MerklePatriciaProof.verify(proof.value, proof.proofPath, proof.hpKey, txRoot);
     }
 
     function proveReceipt(uint256 height, ILightClient.Proof memory proof) external view override returns (bool) {
         bytes32 recRoot = getReceiptRoot(height);
-        return MerklePatriciaProof.verify(proof.rlpValue, proof.rlpParentNodes, proof.encodePath, recRoot);
+        return MerklePatriciaProof.verify(proof.value, proof.hpKey, proof.proofPath, recRoot);
     }
 
     function getStateRoot(uint256 height) public view override returns (bytes32) {
@@ -303,6 +312,7 @@ contract LightClient is ILightClient, Ownable {
     }
 
     function getReceiptRoot(uint256 height) public view override returns (bytes32) {
+        require(blockExist(height),"block no exist");
         return headCores[height].ReceiptHash;
     }
 

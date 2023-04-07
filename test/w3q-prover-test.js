@@ -81,9 +81,11 @@ describe("MerklePatriciaProof With Receipt Test", async function () {
       rlp.encode(receiptProof.parentNodes.map((node) => rlp.decode(hexToBuffer(node))))
     );
 
-    let result = await mpt.verify(getReceiptBytes(receiptProof.receipt), path, rlpParentNodes, receiptProof.root);
+    let rlpReceipt = getReceiptBytes(receiptProof.receipt)
+    console.log("rlpReceipt",rlpReceipt)
+    let result = await mpt.verify(rlpReceipt, path, rlpParentNodes, receiptProof.root);
 
-    let receiptBytes = await mpt.decodeReceipt(getReceiptBytes(receiptProof.receipt));
+    let receiptBytes = await mpt.decodeReceipt(rlpReceipt);
     console.log(receiptProof.receipt.logs);
     // console.log(receiptBytes)
     console.log(receiptBytes[3][0]);

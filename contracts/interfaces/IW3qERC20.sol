@@ -7,5 +7,5 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 interface IW3qERC20 is IERC20 {
     function perEpochReward() external view returns (uint256);
 
-    function mint(address, uint256) external;
+    function mintByLightClient(address, uint256) external;
 }

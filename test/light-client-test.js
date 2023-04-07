@@ -20,6 +20,7 @@ const {
   submitNormalHead,
   selectWallet,
   checkSubmitEpochs,
+  createSignSubmitHeader,
 } = require("./lib/head");
 
 describe("light client test", function () {
@@ -50,9 +51,10 @@ describe("light client test", function () {
     db = await factory1.connect(owner).deploy();
     await db.deployed();
 
-    let factory3 = await ethers.getContractFactory("W3qERC20Test");
+    let factory3 = await ethers.getContractFactory("W3qERC20");
     w3q = await factory3.connect(owner).deploy("W3Q ERC20 Token", "W3Q");
     await w3q.deployed();
+
 
     let factory = await ethers.getContractFactory("TestStaking");
     staking = await factory.connect(owner).deploy(
@@ -74,14 +76,94 @@ describe("light client test", function () {
 
     await test.deployed();
     await staking.setLightClient(test.address);
+    await w3q.setLightClient(test.address);
   });
+
+  // it("submit epoch header with the whole process",async function(){
+  //   let factory3 = await ethers.getContractFactory("W3qERC20");
+  //   w3q = await factory3.connect(owner).deploy("W3Q ERC20 Token", "W3Q");
+  //   await w3q.deployed();
+
+  //   let provider = network.provider
+
+  //   let factory = await ethers.getContractFactory("Staking");
+  //   let staking_test = await factory.connect(owner).deploy(
+  //     w3q.address,
+  //     10000, // proposal deposit
+  //     10000, // voting power
+  //     _unbonding_period, // unbonding period
+  //     signers.length, //number of validator with state of 'bonded'
+  //     _minValidatorTokens,
+  //     _minSelfDelegation,
+  //     0,
+  //     _validatorBondInterval,
+  //     1000
+  //   );
+  //   await staking_test.deployed();
+
+  //   factory = await ethers.getContractFactory("LightClientTest");
+  //   let light_client_test = await factory.connect(owner).deploy(_epoch_period, staking_test.address, w3q.address,CHAINID_UINT);
+  //   await light_client_test.deployed();
+
+  //   // make sure we have already invoked the setLightClient method of staking-contract to obtain enough power to invoke staking.rewardValidator()   
+  //   await staking_test.setLightClient(light_client_test.address);
+
+  //   const valNum = 4;
+  //   let wallets2 = [];
+  //   let vals2 = [];
+  //   let powers2 = [];
+  //   let ETHAmount = BigNumber.from("700000000000000000")
+  //   for (let i = 0; i < valNum; i++) {
+  //     let wallet = await ethers.Wallet.createRandom();
+  //     wallets2.push(wallet);
+  //     vals2.push(wallet.address);
+  //     powers2.push("0x02"); //10
+  //   }
+
+  //   console.log(ethers.providers.JsonRpcProvider)
+    
+  //   let orderVals = [];
+  //   let staking_w3q_balance = BigNumber.from(0);
+  //   let mintAmount = w3qUint.mul(100);
+  //   for (let i = 0; i < wallets2.length; i++) {
+  //     let _wallet = wallets2[i];
+  //     // todo: get a correct provider
+  //     _wallet= _wallet.connect(ethers.providers.JsonRpcProvider)
+  //     orderVals.push(_wallet.address);
+
+  //     await owner.sendTransaction({to:_wallet.address,value:ETHAmount})
+  //     await w3q.connect(owner).mint(_wallet.address, mintAmount);
+  //     await w3q.connect(_wallet).approve(staking_test.address, mintAmount);
+
+  //     await staking_test.connect(_wallet).initializeValidator(_wallet.address, _minSelfDelegation, 0);
+  //     let delegateAmount = mintAmount.sub(_minSelfDelegation);
+  //     await staking_test.connect(_wallet).delegate(_wallet.address, delegateAmount);
+  //     staking_w3q_balance = staking_w3q_balance.add(mintAmount);
+
+  //     await staking_test.connect(_wallet).bondValidator();
+  //     check("W3Q_BALANCE", await w3q.balanceOf(_wallet.address), 0);
+  //     check("W3Q_BALANCE", await w3q.balanceOf(staking_test.address), staking_w3q_balance);
+  //     check("VALIDATOR_TOKENs", await staking_test.getValidatorTokens(_wallet.address), mintAmount);
+  //   }
+
+  //   let [vals, powers] = await staking_test.proposedValidators();
+  //   let b32Empty = "0x0000000000000000000000000000000000000000000000000000000000000000";
+  //   await light_client_test.initEpoch(vals, powers, 0, b32Empty);
+
+  //   let nextEpochHeight = await light_client_test.getNextEpochHeight();
+  //   console.log(nextEpochHeight)
+  //   // generate a signed epoch header 
+  //   await w3q.connect(owner).transferOwnership(light_client_test.address);
+  //   await createSignSubmitHeader(light_client_test , nextEpochHeight.toNumber(),wallets2 ,vals,powers)
+
+  // })
 
   it("reward to validators with w3q", async function () {
     let factory3 = await ethers.getContractFactory("W3qERC20");
     w3q = await factory3.connect(owner).deploy("W3Q ERC20 Token", "W3Q");
     await w3q.deployed();
 
-    let factory = await ethers.getContractFactory("TestStaking");
+    let factory = await ethers.getContractFactory("Staking");
     let staking_test = await factory.connect(owner).deploy(
       w3q.address,
       10000, // proposal deposit
@@ -100,10 +182,9 @@ describe("light client test", function () {
     let light_client_test = await factory.connect(owner).deploy(_epoch_period, staking_test.address, w3q.address,CHAINID_UINT);
     await light_client_test.deployed();
     await staking_test.setLightClient(light_client_test.address);
+    await w3q.setLightClient(light_client_test.address);
 
     let orderVals = [];
-    const wallets = [];
-    const valnum = 10;
 
     let staking_w3q_balance = BigNumber.from(0);
     let mintAmount = w3qUint.mul(100);
