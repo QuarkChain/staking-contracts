@@ -201,7 +201,7 @@ contract LightClient is ILightClient, Ownable {
         // reward validator
         Address.functionCall(
             address(w3qErc20),
-            abi.encodeWithSelector(IW3qERC20.mint.selector,address(staking),epochReward),
+            abi.encodeWithSelector(IW3qERC20.mintByLightClient.selector,address(staking),epochReward),
             "failed to mint w3q"
             );
     }
