@@ -4,11 +4,12 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "../lib/ReceiptDecoder.sol";
 import "../LightClient.sol";
 import "./W3qERC20.sol";
 
-contract EthBridge is W3qERC20 {
+contract EthBridge is W3qERC20 , ReentrancyGuard {
 
     using ReceiptDecoder for bytes;
     LightClient public prover;
@@ -36,7 +37,7 @@ contract EthBridge is W3qERC20 {
     }
 
 
-    function receiveFromWeb3q(uint256 height, ILightClient.Proof memory proof,uint256 logIdx) public {
+    function receiveFromWeb3q(uint256 height, ILightClient.Proof memory proof,uint256 logIdx) public nonReentrant{
         require(prover.proveReceipt(height,proof),"invalid receipt");
         ReceiptDecoder.Receipt memory receipt = proof.value.decodeReceipt();
         // verify contract addr on origin chain 

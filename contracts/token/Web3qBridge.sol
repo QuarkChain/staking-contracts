@@ -4,12 +4,12 @@ pragma solidity ^0.8.0;
 import "./sidechain/TokenManager.sol";
 import "./sidechain/CrossChainCall.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract Web3qBridge is TokenManager, CrossChainCall ,Ownable{
+contract Web3qBridge is TokenManager, CrossChainCall ,Ownable , ReentrancyGuard{
     uint256 public constant BLOCK_CONFIRMS = 1;
     uint256 public constant SOURCE_CHAINID = 5; 
     
-    // address public constant owner = ;
     address public w3qOnEthereum;
     mapping(bytes32 => mapping(uint256 => bool)) public burnlogConsumed;
 
@@ -46,7 +46,7 @@ contract Web3qBridge is TokenManager, CrossChainCall ,Ownable{
         return (c, topics, data);
     }
 
-    function receiveFromEth(bytes32 txHash, uint256 logIdx) public {
+    function receiveFromEth(bytes32 txHash, uint256 logIdx) public nonReentrant {
         require(!burnlogConsumed[txHash][logIdx], "the burn log has been used");
         burnlogConsumed[txHash][logIdx] = true;
         (address _w3qOnEthereum, bytes32[] memory topics, bytes memory data) = getEthereumLog(SOURCE_CHAINID, txHash, logIdx, 32, BLOCK_CONFIRMS);
