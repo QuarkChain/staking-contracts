@@ -17,16 +17,16 @@ contract W3qERC20 is ERC20Pausable, Ownable {
         PER_EPOCH_REWARD = 1e20;
     }
 
-    modifier onlyLightClient(){
-        require(msg.sender == lightClient,"only LightClient");
+    modifier onlyLightClient() {
+        require(msg.sender == lightClient, "only LightClient");
         _;
     }
 
-    function setLightClient(address lc)public virtual onlyOwner{
+    function setLightClient(address lc) public virtual onlyOwner {
         lightClient = lc;
     }
 
-     function mint(address account, uint256 amount) public virtual onlyOwner {
+    function mint(address account, uint256 amount) public virtual onlyOwner {
         _mint(account, amount);
     }
 
@@ -34,7 +34,7 @@ contract W3qERC20 is ERC20Pausable, Ownable {
         _mint(account, amount);
     }
 
-    function setPerEpochReward(uint256 amount) public onlyOwner{
+    function setPerEpochReward(uint256 amount) public onlyOwner {
         PER_EPOCH_REWARD = amount;
     }
 

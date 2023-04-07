@@ -6,12 +6,12 @@ import "./sidechain/CrossChainCall.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract Web3qBridge is TokenManager, CrossChainCall ,Ownable , ReentrancyGuard{
+contract Web3qBridge is TokenManager, CrossChainCall, Ownable, ReentrancyGuard {
     uint256 public constant BLOCK_CONFIRMS = 1;
-    uint256 public constant SOURCE_CHAINID = 5; 
+    uint256 public constant SOURCE_CHAINID = 5;
 
     uint256 public totalSupply;
-    
+
     address public w3qOnEthereum;
     mapping(bytes32 => mapping(uint256 => bool)) public burnlogConsumed;
 
@@ -38,7 +38,7 @@ contract Web3qBridge is TokenManager, CrossChainCall ,Ownable , ReentrancyGuard{
             bytes memory
         )
     {
-        (bool succeed, bytes memory res) = _doCall(chainId,txHash,logIdx,maxDataLen,confirms);
+        (bool succeed, bytes memory res) = _doCall(chainId, txHash, logIdx, maxDataLen, confirms);
         if (!succeed) {
             string memory errMsg = abi.decode(res, (string));
             revert(errMsg);
@@ -51,24 +51,29 @@ contract Web3qBridge is TokenManager, CrossChainCall ,Ownable , ReentrancyGuard{
     function receiveFromEth(bytes32 txHash, uint256 logIdx) public nonReentrant {
         require(!burnlogConsumed[txHash][logIdx], "the burn log has been used");
         burnlogConsumed[txHash][logIdx] = true;
-        (address _w3qOnEthereum, bytes32[] memory topics, bytes memory data) = getEthereumLog(SOURCE_CHAINID, txHash, logIdx, 32, BLOCK_CONFIRMS);
+        (address _w3qOnEthereum, bytes32[] memory topics, bytes memory data) = getEthereumLog(
+            SOURCE_CHAINID,
+            txHash,
+            logIdx,
+            32,
+            BLOCK_CONFIRMS
+        );
         require(_w3qOnEthereum == w3qOnEthereum, "contract addr no match");
 
         address to = address(uint160(uint256(topics[1])));
         uint256 amount = abi.decode(data, (uint256));
 
-        _mint(to,amount);
+        _mint(to, amount);
         totalSupply += amount;
         emit ReceiveToken(txHash, logIdx, to, amount);
     }
 
-    function sendToEth()public payable nonReentrant{
-        _burn(msg.sender,msg.value);
-        
-        burnNonce ++;
+    function sendToEth() public payable nonReentrant {
+        _burn(msg.sender, msg.value);
+
+        burnNonce++;
         totalSupply -= msg.value;
 
         emit SendToken(burnNonce, msg.sender, msg.value);
-
     }
 }
