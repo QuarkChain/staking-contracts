@@ -51,9 +51,10 @@ describe("light client test", function () {
     db = await factory1.connect(owner).deploy();
     await db.deployed();
 
-    let factory3 = await ethers.getContractFactory("EthBridgeTest");
+    let factory3 = await ethers.getContractFactory("W3qERC20");
     w3q = await factory3.connect(owner).deploy("W3Q ERC20 Token", "W3Q");
     await w3q.deployed();
+
 
     let factory = await ethers.getContractFactory("TestStaking");
     staking = await factory.connect(owner).deploy(
@@ -75,6 +76,7 @@ describe("light client test", function () {
 
     await test.deployed();
     await staking.setLightClient(test.address);
+    await w3q.setLightClient(test.address);
   });
 
   // it("submit epoch header with the whole process",async function(){
@@ -180,6 +182,7 @@ describe("light client test", function () {
     let light_client_test = await factory.connect(owner).deploy(_epoch_period, staking_test.address, w3q.address,CHAINID_UINT);
     await light_client_test.deployed();
     await staking_test.setLightClient(light_client_test.address);
+    await w3q.setLightClient(light_client_test.address);
 
     let orderVals = [];
 
