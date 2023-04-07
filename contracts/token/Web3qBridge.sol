@@ -3,8 +3,9 @@ pragma solidity ^0.8.0;
 
 import "./sidechain/TokenManager.sol";
 import "./sidechain/CrossChainCall.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Web3qBridge is TokenManager, CrossChainCall {
+contract Web3qBridge is TokenManager, CrossChainCall ,Ownable{
     uint256 public constant BLOCK_CONFIRMS = 1;
     uint256 public constant SOURCE_CHAINID = 5; 
     
@@ -17,7 +18,7 @@ contract Web3qBridge is TokenManager, CrossChainCall {
     event ReceiveToken(bytes32 indexed txHash, uint256 indexed logIdx, address indexed to, uint256 amount);
     event SendToken(uint256 indexed nonce, address indexed to, uint256 amount);
 
-    function setW3qErc20Addr(address addr) public {
+    function setW3qErc20Addr(address addr) public onlyOwner {
         w3qOnEthereum = addr;
     }
 

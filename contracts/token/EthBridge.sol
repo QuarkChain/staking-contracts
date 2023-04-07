@@ -6,14 +6,14 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../lib/ReceiptDecoder.sol";
 import "../LightClient.sol";
+import "./W3qERC20.sol";
 
-contract EthBridge is ERC20Pausable, Ownable {
+contract EthBridge is W3qERC20 {
 
     using ReceiptDecoder for bytes;
     LightClient public prover;
 
     mapping(uint256 => bool) public burnNonceUsed;
-    uint256 public constant PER_EPOCH_REWARD = 1e20;
 
     address public constant tokenOnWeb3q = 0x0000000000000000000000000000000003330002;
     mapping (uint256 => bool) nonceUsed;
@@ -21,16 +21,9 @@ contract EthBridge is ERC20Pausable, Ownable {
     event SendToken(address indexed owner, uint256 amount);
     event ReveiveToken(uint256 indexed nonce, uint256 indexed logIdx, address indexed to, uint256 amount);
 
-    constructor(string memory name, string memory symbol)ERC20(name, symbol) {
+    constructor(string memory name, string memory symbol)W3qERC20(name, symbol) {
     }
 
-    function mint(address account, uint256 amount) public virtual onlyOwner {
-        _mint(account, amount);
-    }
-
-    function perEpochReward() public pure returns (uint256) {
-        return PER_EPOCH_REWARD;
-    }
 
     function sendToWeb3q(address account , uint256 amount) public{
         // _spendAllowance(account, msg.sender, amount);
@@ -38,7 +31,7 @@ contract EthBridge is ERC20Pausable, Ownable {
         emit SendToken(account, amount);
     }
 
-    function setProver(LightClient addr)public {
+    function setProver(LightClient addr)public onlyOwner{
         prover = addr;
     }
 
