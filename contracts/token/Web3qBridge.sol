@@ -9,6 +9,8 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 contract Web3qBridge is TokenManager, CrossChainCall ,Ownable , ReentrancyGuard{
     uint256 public constant BLOCK_CONFIRMS = 1;
     uint256 public constant SOURCE_CHAINID = 5; 
+
+    uint256 public totalSupply;
     
     address public w3qOnEthereum;
     mapping(bytes32 => mapping(uint256 => bool)) public burnlogConsumed;
@@ -56,13 +58,16 @@ contract Web3qBridge is TokenManager, CrossChainCall ,Ownable , ReentrancyGuard{
         uint256 amount = abi.decode(data, (uint256));
 
         _mint(to,amount);
+        totalSupply += amount;
         emit ReceiveToken(txHash, logIdx, to, amount);
     }
 
-    function sendToEth()public payable {
+    function sendToEth()public payable nonReentrant{
         _burn(msg.sender,msg.value);
-        burnNonce ++;
         
+        burnNonce ++;
+        totalSupply -= msg.value;
+
         emit SendToken(burnNonce, msg.sender, msg.value);
 
     }
