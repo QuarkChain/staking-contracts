@@ -2,7 +2,8 @@ const { expect } = require("chai");
 const { sign } = require("crypto");
 const { BigNumber } = require("ethers");
 const { ethers, web3 } = require("hardhat");
-const {Config} = require("./config/config")
+const {Config} = require("./config/config");
+const {} = require("./deploy-staking.js")
 
 let epochPeriod = 1000;
 async function main() {
@@ -19,9 +20,11 @@ async function main() {
   let signers = await ethers.getSigners();
   let owner = signers[0];
 
+  let gasPrice = await owner.getGasPrice();
+  let expGasPrice = gasPrice.mul(2);
   console.log("deploy light client ...");
   let factory2 = await ethers.getContractFactory("LightClient");
-  let lc = await factory2.connect(owner).deploy(BigNumber.from(deployParams.epochPeriod), staking_addr,globalConfig.getW3QAddress(),deployParams.chainId);
+  let lc = await factory2.connect(owner).deploy(BigNumber.from(deployParams.epochPeriod), staking_addr,globalConfig.getW3QAddress(),deployParams.chainId,{gasPrice:expGasPrice});
   await lc.deployed();
   
   console.log("Initalize Epoch ...");
@@ -52,15 +55,15 @@ async function main() {
   // check w3q and staking 
   let lcAtStaking = await staking.lightClient();
   if (lcAtStaking!=lc.address) {
-    console.log("staking_lc:", lcAtStaking, " lignt-client:",lc.address);
+    console.log("staking_lc: %s lignt-client: %s ", lcAtStaking,lc.address);
   }
 
-  let tx2 = await w3q.transferOwnership(lc.address);
+  let tx2 = await w3q.setLightClient(lc.address);
   await tx2.wait();
 
-  let w3qowner = await w3q.owner();
-  if (w3q.address!=lc.address) {
-    console.log(" w3q owner:", w3qowner, " lighting-client:",lc.address);
+  let w3qLC = await w3q.lightClient();
+  if (w3qLC!=lc.address) {
+    console.log(" w3q light-client: %s lignt-client: %s", w3qLC,lc.address);
   }
 
   deployParams.validators = validators

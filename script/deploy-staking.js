@@ -4,7 +4,7 @@ const { BigNumber } = require("ethers");
 const { ethers, web3 } = require("hardhat");
 const {Config} = require("./config/config")
 
-let main = async function () {
+let deployW3qAndStaking = async function () {
   
   let globalConfig = new Config()
   let deployParams = globalConfig.getStakingParams()
@@ -79,7 +79,9 @@ let main = async function () {
   globalConfig.save()
 };
 
-main().catch((error) => {
+deployW3qAndStaking().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
+
+exports.deployW3qAndStaking = deployW3qAndStaking;
