@@ -16,7 +16,6 @@ contract EthBridge is W3qERC20, ReentrancyGuard {
     mapping(uint256 => bool) public burnNonceUsed;
 
     address public constant tokenOnWeb3q = 0x0000000000000000000000000000000003330002;
-    mapping(uint256 => bool) nonceUsed;
 
     event SendToken(address indexed owner, uint256 amount);
     event ReveiveToken(uint256 indexed nonce, uint256 indexed logIdx, address indexed to, uint256 amount);
@@ -42,11 +41,12 @@ contract EthBridge is W3qERC20, ReentrancyGuard {
         ReceiptDecoder.Receipt memory receipt = proof.value.decodeReceipt();
         // verify contract addr on origin chain
         require(receipt.logs[logIdx].addr == tokenOnWeb3q, "addr no match");
-        //veridy nonce
+        // verify nonce
         uint256 nonce = uint256(receipt.logs[logIdx].topics[1]);
+        // TODO: use a bitmap to optimize store gas
         require(!burnNonceUsed[nonce], "the burn nonce has been used");
         burnNonceUsed[nonce] = true;
-        //mint token
+        // mint token
         address to = address(uint160(uint256(receipt.logs[logIdx].topics[2])));
         uint256 amount = abi.decode(receipt.logs[logIdx].data, (uint256));
         _mint(to, amount);
